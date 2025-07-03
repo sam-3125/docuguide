@@ -16,7 +16,16 @@ export default function NewWorkspaceModal({ hideModal = noop }) {
     const data = {};
     const form = new FormData(formEl.current);
     for (var [key, value] of form.entries()) data[key] = value;
-    const { workspace, message } = await Workspace.new(data);
+    let workspace, message;
+    try {
+      const res = await Workspace.new(data);
+      workspace = res.workspace;
+      message = res.message;
+    } catch (err) {
+      // If the error is a JSON parse error, show a user-friendly message
+      setError("Could not create workspace. You may not have permission or the server returned an error.");
+      return;
+    }
     if (!!workspace) {
       window.location.href = paths.workspace.chat(workspace.slug);
     }

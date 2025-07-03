@@ -62,6 +62,17 @@ const { TemporaryAuthToken } = require("../models/temporaryAuthToken");
 const { SystemPromptVariables } = require("../models/systemPromptVariables");
 const { VALID_COMMANDS } = require("../utils/chats");
 
+// Example fetch wrapper
+async function fetchWithAuth(url, options) {
+  const response = await fetch(url, options);
+  if (response.status === 401) {
+    // Redirect to login or show a message
+    window.location.href = '/login';
+    return null;
+  }
+  return response.json();
+}
+
 function systemEndpoints(app) {
   if (!app) return;
 
@@ -425,9 +436,10 @@ function systemEndpoints(app) {
     }
   );
 
+  // This endpoint is used for both /system/local-files and /api/system/local-files
   app.get(
     "/system/local-files",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager, ROLES.default])],
     async (_, response) => {
       try {
         const localFiles = await viewLocalFiles();

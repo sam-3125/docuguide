@@ -7,6 +7,10 @@ const { v4: uuidv4 } = require("uuid");
 const { User } = require("./user");
 const { PromptHistory } = require("./promptHistory");
 
+/* ────────────────────────────────────────────────────────── */
+/* -----------------------  HELPERS  ------------------------ */
+/* ────────────────────────────────────────────────────────── */
+
 function isNullOrNaN(value) {
   if (value === null) return true;
   return isNaN(value);
@@ -14,29 +18,32 @@ function isNullOrNaN(value) {
 
 /**
  * @typedef {Object} Workspace
- * @property {number} id - The ID of the workspace
- * @property {string} name - The name of the workspace
- * @property {string} slug - The slug of the workspace
- * @property {string} openAiPrompt - The OpenAI prompt of the workspace
- * @property {string} openAiTemp - The OpenAI temperature of the workspace
- * @property {number} openAiHistory - The OpenAI history of the workspace
- * @property {number} similarityThreshold - The similarity threshold of the workspace
- * @property {string} chatProvider - The chat provider of the workspace
- * @property {string} chatModel - The chat model of the workspace
- * @property {number} topN - The top N of the workspace
- * @property {string} chatMode - The chat mode of the workspace
- * @property {string} agentProvider - The agent provider of the workspace
- * @property {string} agentModel - The agent model of the workspace
- * @property {string} queryRefusalResponse - The query refusal response of the workspace
- * @property {string} vectorSearchMode - The vector search mode of the workspace
+ * @property {number}   id
+ * @property {string}   name
+ * @property {string}   slug
+ * @property {string}   openAiPrompt
+ * @property {number}   openAiTemp
+ * @property {number}   openAiHistory
+ * @property {number}   similarityThreshold
+ * @property {string}   chatProvider
+ * @property {string}   chatModel
+ * @property {number}   topN
+ * @property {string}   chatMode
+ * @property {string}   agentProvider
+ * @property {string}   agentModel
+ * @property {string}   queryRefusalResponse
+ * @property {string}   vectorSearchMode
  */
 
 const Workspace = {
+  /* ────────────────────────────
+       CONFIG & STATIC HELPERS
+     ──────────────────────────── */
+
   defaultPrompt:
     "Given the following conversation, relevant context, and a follow up question, reply with an answer to the current question the user is asking. Return only your response to the question given the above information following the users instructions as needed.",
 
-  // Used for generic updates so we can validate keys in request body
-  // commented fields are not writable, but are available on the db object
+  // writable db fields for generic updates
   writable: [
     "name",
     // "slug",
@@ -59,8 +66,6 @@ const Workspace = {
 
   validations: {
     name: (value) => {
-      // If the name is not provided or is not a string then we will use a default name.
-      // as the name field is not nullable in the db schema or has a default value.
       if (!value || typeof value !== "string") return "My Workspace";
       return String(value).slice(0, 255);
     },
@@ -131,12 +136,12 @@ const Workspace = {
     },
   },
 
+  /* ────────────────────────────
+           UTILITY METHODS
+     ──────────────────────────── */
+
   /**
-   * The default Slugify module requires some additional mapping to prevent downstream issues
-   * with some vector db providers and instead of building a normalization method for every provider
-   * we can capture this on the table level to not have to worry about it.
-   * @param  {...any} args - slugify args for npm package.
-   * @returns {string}
+   * Custom slugify that strips characters some vector-DBs dislike.
    */
   slugify: function (...args) {
     slugifyModule.extend({
@@ -157,40 +162,34 @@ const Workspace = {
   },
 
   /**
-   * Validate the fields for a workspace update.
-   * @param {Object} updates - The updates to validate - should be writable fields
-   * @returns {Object} The validated updates. Only valid fields are returned.
+   * Apply per-field validation and return a clean update-object.
    */
   validateFields: function (updates = {}) {
-    const validatedFields = {};
+    const validated = {};
     for (const [key, value] of Object.entries(updates)) {
       if (!this.writable.includes(key)) continue;
-      if (this.validations[key]) {
-        validatedFields[key] = this.validations[key](value);
-      } else {
-        // If there is no validation for the field then we will just pass it through.
-        validatedFields[key] = value;
-      }
+      validated[key] = this.validations[key]
+        ? this.validations[key](value)
+        : value;
     }
-    return validatedFields;
+    return validated;
   },
 
+  /* ────────────────────────────
+               CRUD
+     ──────────────────────────── */
+
   /**
-   * Create a new workspace.
-   * @param {string} name - The name of the workspace.
-   * @param {number} creatorId - The ID of the user creating the workspace.
-   * @param {Object} additionalFields - Additional fields to apply to the workspace - will be validated.
-   * @returns {Promise<{workspace: Object | null, message: string | null}>} A promise that resolves to an object containing the created workspace and an error message if applicable.
+   * Create a new workspace and (optionally) link the creator.
    */
   new: async function (name = null, creatorId = null, additionalFields = {}) {
     if (!name) return { workspace: null, message: "name cannot be null" };
-    var slug = this.slugify(name, { lower: true });
-    slug = slug || uuidv4();
 
-    const existingBySlug = await this.get({ slug });
-    if (existingBySlug !== null) {
-      const slugSeed = Math.floor(10000000 + Math.random() * 90000000);
-      slug = this.slugify(`${name}-${slugSeed}`, { lower: true });
+    // generate unique slug
+    let slug = this.slugify(name, { lower: true }) || uuidv4();
+    if (await this.get({ slug })) {
+      const nonce = Math.floor(10000000 + Math.random() * 90000000);
+      slug = this.slugify(`${name}-${nonce}`, { lower: true });
     }
 
     try {
@@ -202,10 +201,7 @@ const Workspace = {
         },
       });
 
-      // If created with a user then we need to create the relationship as well.
-      // If creating with an admin User it wont change anything because admins can
-      // view all workspaces anyway.
-      if (!!creatorId) await WorkspaceUser.create(creatorId, workspace.id);
+      if (creatorId) await WorkspaceUser.create(creatorId, workspace.id);
       return { workspace, message: null };
     } catch (error) {
       console.error(error.message);
@@ -214,34 +210,24 @@ const Workspace = {
   },
 
   /**
-   * Update the settings for a workspace. Applies validations to the updates provided.
-   * @param {number} id - The ID of the workspace to update.
-   * @param {Object} updates - The data to update.
-   * @returns {Promise<{workspace: Object | null, message: string | null}>} A promise that resolves to an object containing the updated workspace and an error message if applicable.
+   * Validate and update workspace settings.
    */
   update: async function (id = null, updates = {}) {
     if (!id) throw new Error("No workspace id provided for update");
-
-    const validatedUpdates = this.validateFields(updates);
-    if (Object.keys(validatedUpdates).length === 0)
+    const validated = this.validateFields(updates);
+    if (Object.keys(validated).length === 0)
       return { workspace: { id }, message: "No valid fields to update!" };
 
-    // If the user unset the chatProvider we will need
-    // to then clear the chatModel as well to prevent confusion during
-    // LLM loading.
-    if (validatedUpdates?.chatProvider === "default") {
-      validatedUpdates.chatProvider = null;
-      validatedUpdates.chatModel = null;
+    if (validated?.chatProvider === "default") {
+      validated.chatProvider = null;
+      validated.chatModel = null;
     }
 
-    return this._update(id, validatedUpdates);
+    return this._update(id, validated);
   },
 
   /**
-   * Direct update of workspace settings without any validation.
-   * @param {number} id - The ID of the workspace to update.
-   * @param {Object} data - The data to update.
-   * @returns {Promise<{workspace: Object | null, message: string | null}>} A promise that resolves to an object containing the updated workspace and an error message if applicable.
+   * Unsafe update (no validation) – internal use.
    */
   _update: async function (id = null, data = {}) {
     if (!id) throw new Error("No workspace id provided for update");
@@ -258,24 +244,21 @@ const Workspace = {
     }
   },
 
-  getWithUser: async function (user = null, clause = {}) {
-    if ([ROLES.admin, ROLES.manager].includes(user.role))
-      return this.get(clause);
+  /* ────────────────────────────
+       READ OPERATIONS (filtered)
+     ──────────────────────────── */
 
+  /**
+   * Fetch a single workspace the user is related to.
+   */
+  getWithUser: async function (user = null, clause = {}) {
     try {
       const workspace = await prisma.workspaces.findFirst({
         where: {
           ...clause,
-          workspace_users: {
-            some: {
-              user_id: user?.id,
-            },
-          },
+          workspace_users: { some: { user_id: user?.id } },
         },
-        include: {
-          workspace_users: true,
-          documents: true,
-        },
+        include: { workspace_users: true, documents: true },
       });
 
       if (!workspace) return null;
@@ -290,16 +273,68 @@ const Workspace = {
     }
   },
 
+  /**
+   * Fetch multiple workspaces the user is related to.
+   */
+  whereWithUser: async function (user, clause = {}, limit = null, orderBy = null) {
+    try {
+      let workspaces = await prisma.workspaces.findMany({
+        where: {
+          ...clause,
+          workspace_users: { some: { user_id: user.id } },
+        },
+        ...(limit   ? { take    : limit   } : {}),
+        ...(orderBy ? { orderBy           } : {}),
+        include: { workspace_users: true },
+      });
+      console.log('[whereWithUser] BEFORE FILTER user role:', user.role, 'workspaces:', workspaces.map(w => w.slug || w.id));
+      // If the user is not an admin, filter out workspaces with any admin member
+      if (user.role !== 'admin') {
+        const userIds = workspaces.flatMap(ws => ws.workspace_users.map(wu => wu.user_id));
+        // Get all users for these userIds
+        const uniqueUserIds = [...new Set(userIds)];
+        const users = await User.where({ id: { in: uniqueUserIds } });
+        const userIdToRole = Object.fromEntries(users.map(u => [u.id, u.role]));
+        workspaces = workspaces.filter(ws =>
+          !ws.workspace_users.some(wu => userIdToRole[wu.user_id] === 'admin')
+        );
+        console.log('[whereWithUser] AFTER FILTER (non-admin) user role:', user.role, 'workspaces:', workspaces.map(w => w.slug || w.id));
+      } else {
+        // If the user is an admin, filter out workspaces with any manager member
+        const userIds = workspaces.flatMap(ws => ws.workspace_users.map(wu => wu.user_id));
+        const uniqueUserIds = [...new Set(userIds)];
+        const users = await User.where({ id: { in: uniqueUserIds } });
+        const userIdToRole = Object.fromEntries(users.map(u => [u.id, u.role]));
+        workspaces = workspaces.filter(ws =>
+          !ws.workspace_users.some(wu => userIdToRole[wu.user_id] === 'manager')
+        );
+        console.log('[whereWithUser] AFTER FILTER (admin) user role:', user.role, 'workspaces:', workspaces.map(w => w.slug || w.id));
+      }
+      // Remove workspace_users from result for compatibility
+      workspaces = workspaces.map(ws => {
+        const { workspace_users, ...rest } = ws;
+        return rest;
+      });
+      console.log('[whereWithUser] FINAL RETURN user role:', user.role, 'workspaces:', workspaces.map(w => w.slug || w.id));
+      return workspaces;
+    } catch (error) {
+      console.error(error.message);
+      return [];
+    }
+  },
+
+  /* ────────────────────────────
+       UNFILTERED READ HELPERS
+     ──────────────────────────── */
+
   get: async function (clause = {}) {
     try {
-      const workspace = await prisma.workspaces.findFirst({
-        where: clause,
-        include: {
-          documents: true,
-        },
-      });
-
-      return workspace || null;
+      return (
+        (await prisma.workspaces.findFirst({
+          where: clause,
+          include: { documents: true },
+        })) || null
+      );
     } catch (error) {
       console.error(error.message);
       return null;
@@ -308,9 +343,7 @@ const Workspace = {
 
   delete: async function (clause = {}) {
     try {
-      await prisma.workspaces.delete({
-        where: clause,
-      });
+      await prisma.workspaces.delete({ where: clause });
       return true;
     } catch (error) {
       console.error(error.message);
@@ -320,55 +353,28 @@ const Workspace = {
 
   where: async function (clause = {}, limit = null, orderBy = null) {
     try {
-      const results = await prisma.workspaces.findMany({
+      return await prisma.workspaces.findMany({
         where: clause,
-        ...(limit !== null ? { take: limit } : {}),
-        ...(orderBy !== null ? { orderBy } : {}),
+        ...(limit   ? { take    : limit   } : {}),
+        ...(orderBy ? { orderBy           } : {}),
       });
-      return results;
     } catch (error) {
       console.error(error.message);
       return [];
     }
   },
 
-  whereWithUser: async function (
-    user,
-    clause = {},
-    limit = null,
-    orderBy = null
-  ) {
-    if ([ROLES.admin, ROLES.manager].includes(user.role))
-      return await this.where(clause, limit, orderBy);
-
-    try {
-      const workspaces = await prisma.workspaces.findMany({
-        where: {
-          ...clause,
-          workspace_users: {
-            some: {
-              user_id: user.id,
-            },
-          },
-        },
-        ...(limit !== null ? { take: limit } : {}),
-        ...(orderBy !== null ? { orderBy } : {}),
-      });
-      return workspaces;
-    } catch (error) {
-      console.error(error.message);
-      return [];
-    }
-  },
-
+  /**
+   * Same as `where` but also returns an array `userIds` for each workspace.
+   */
   whereWithUsers: async function (clause = {}, limit = null, orderBy = null) {
     try {
       const workspaces = await this.where(clause, limit, orderBy);
-      for (const workspace of workspaces) {
+      for (const ws of workspaces) {
         const userIds = (
-          await WorkspaceUser.where({ workspace_id: Number(workspace.id) })
+          await WorkspaceUser.where({ workspace_id: Number(ws.id) })
         ).map((rel) => rel.user_id);
-        workspace.userIds = userIds;
+        ws.userIds = userIds;
       }
       return workspaces;
     } catch (error) {
@@ -377,44 +383,30 @@ const Workspace = {
     }
   },
 
-  /**
-   * Get all users for a workspace.
-   * @param {number} workspaceId - The ID of the workspace to get users for.
-   * @returns {Promise<Array<{userId: number, username: string, role: string}>>} A promise that resolves to an array of user objects.
-   */
+  /* ────────────────────────────
+        USER <--> WORKSPACE
+     ──────────────────────────── */
+
   workspaceUsers: async function (workspaceId) {
     try {
-      const users = (
-        await WorkspaceUser.where({ workspace_id: Number(workspaceId) })
-      ).map((rel) => rel);
+      const rels = await WorkspaceUser.where({ workspace_id: Number(workspaceId) });
+      const users = await User.where({ id: { in: rels.map((r) => r.user_id) } });
 
-      const usersById = await User.where({
-        id: { in: users.map((user) => user.user_id) },
-      });
-
-      const userInfo = usersById.map((user) => {
-        const workspaceUser = users.find((u) => u.user_id === user.id);
+      return users.map((u) => {
+        const rel = rels.find((r) => r.user_id === u.id);
         return {
-          userId: user.id,
-          username: user.username,
-          role: user.role,
-          lastUpdatedAt: workspaceUser.lastUpdatedAt,
+          userId: u.id,
+          username: u.username,
+          role: u.role,
+          lastUpdatedAt: rel.lastUpdatedAt,
         };
       });
-
-      return userInfo;
     } catch (error) {
       console.error(error.message);
       return [];
     }
   },
 
-  /**
-   * Update the users for a workspace. Will remove all existing users and replace them with the new list.
-   * @param {number} workspaceId - The ID of the workspace to update.
-   * @param {number[]} userIds - An array of user IDs to add to the workspace.
-   * @returns {Promise<{success: boolean, error: string | null}>} A promise that resolves to an object containing the success status and an error message if applicable.
-   */
   updateUsers: async function (workspaceId, userIds = []) {
     try {
       await WorkspaceUser.delete({ workspace_id: Number(workspaceId) });
@@ -426,41 +418,34 @@ const Workspace = {
     }
   },
 
+  /* ────────────────────────────
+         PROMPT HISTORY ETC.
+     ──────────────────────────── */
+
   trackChange: async function (prevData, newData, user) {
     try {
       await this._trackWorkspacePromptChange(prevData, newData, user);
-      return;
     } catch (error) {
       console.error("Error tracking workspace change:", error.message);
-      return;
     }
   },
 
-  /**
-   * We are tracking this change to determine the need to a prompt library or
-   * prompt assistant feature. If this is something you would like to see - tell us on GitHub!
-   * We now track the prompt change in the PromptHistory model.
-   * which is a sub-model of the Workspace model.
-   * @param {Workspace} prevData - The previous data of the workspace.
-   * @param {Workspace} newData - The new data of the workspace.
-   * @param {{id: number, role: string}|null} user - The user who made the change.
-   * @returns {Promise<void>}
-   */
   _trackWorkspacePromptChange: async function (prevData, newData, user = null) {
     if (
-      !!newData?.openAiPrompt && // new prompt is set
-      !!prevData?.openAiPrompt && // previous prompt was not null (default)
-      prevData?.openAiPrompt !== this.defaultPrompt && // previous prompt was not default
-      newData?.openAiPrompt !== prevData?.openAiPrompt // previous and new prompt are not the same
-    )
-      await PromptHistory.handlePromptChange(prevData, user); // log the change to the prompt history
+      newData?.openAiPrompt &&
+      prevData?.openAiPrompt &&
+      prevData.openAiPrompt !== this.defaultPrompt &&
+      newData.openAiPrompt !== prevData.openAiPrompt
+    ) {
+      await PromptHistory.handlePromptChange(prevData, user);
+    }
 
     const { Telemetry } = require("./telemetry");
     const { EventLogs } = require("./eventLogs");
     if (
-      !newData?.openAiPrompt || // no prompt change
-      newData?.openAiPrompt === this.defaultPrompt || // new prompt is default prompt
-      newData?.openAiPrompt === prevData?.openAiPrompt // same prompt
+      !newData?.openAiPrompt ||
+      newData.openAiPrompt === this.defaultPrompt ||
+      newData.openAiPrompt === prevData?.openAiPrompt
     )
       return;
 
@@ -474,62 +459,39 @@ const Workspace = {
       },
       user?.id
     );
-    return;
   },
 
-  // Direct DB queries for API use only.
-  /**
-   * Generic prisma FindMany query for workspaces collections
-   * @param {import("../node_modules/.prisma/client/index.d.ts").Prisma.TypeMap['model']['workspaces']['operations']['findMany']['args']} prismaQuery
-   * @returns
-   */
+  /* ────────────────────────────
+           LOW-LEVEL QUERIES
+     ──────────────────────────── */
+
   _findMany: async function (prismaQuery = {}) {
     try {
-      const results = await prisma.workspaces.findMany(prismaQuery);
-      return results;
+      return await prisma.workspaces.findMany(prismaQuery);
     } catch (error) {
       console.error(error.message);
       return null;
     }
   },
 
-  /**
-   * Generic prisma query for .get of workspaces collections
-   * @param {import("../node_modules/.prisma/client/index.d.ts").Prisma.TypeMap['model']['workspaces']['operations']['findFirst']['args']} prismaQuery
-   * @returns
-   */
   _findFirst: async function (prismaQuery = {}) {
     try {
-      const results = await prisma.workspaces.findFirst(prismaQuery);
-      return results;
+      return await prisma.workspaces.findFirst(prismaQuery);
     } catch (error) {
       console.error(error.message);
       return null;
     }
   },
 
-  /**
-   * Get the prompt history for a workspace.
-   * @param {Object} options - The options to get prompt history for.
-   * @param {number} options.workspaceId - The ID of the workspace to get prompt history for.
-   * @returns {Promise<Array<{id: number, prompt: string, modifiedAt: Date, modifiedBy: number, user: {id: number, username: string, role: string}}>>} A promise that resolves to an array of prompt history objects.
-   */
   promptHistory: async function ({ workspaceId }) {
     try {
-      const results = await PromptHistory.forWorkspace(workspaceId);
-      return results;
+      return await PromptHistory.forWorkspace(workspaceId);
     } catch (error) {
       console.error(error.message);
       return [];
     }
   },
 
-  /**
-   * Delete the prompt history for a workspace.
-   * @param {Object} options - The options to delete the prompt history for.
-   * @param {number} options.workspaceId - The ID of the workspace to delete prompt history for.
-   * @returns {Promise<boolean>} A promise that resolves to a boolean indicating the success of the operation.
-   */
   deleteAllPromptHistory: async function ({ workspaceId }) {
     try {
       return await PromptHistory.delete({ workspaceId });
@@ -539,13 +501,6 @@ const Workspace = {
     }
   },
 
-  /**
-   * Delete the prompt history for a workspace.
-   * @param {Object} options - The options to delete the prompt history for.
-   * @param {number} options.workspaceId - The ID of the workspace to delete prompt history for.
-   * @param {number} options.id - The ID of the prompt history to delete.
-   * @returns {Promise<boolean>} A promise that resolves to a boolean indicating the success of the operation.
-   */
   deletePromptHistory: async function ({ workspaceId, id }) {
     try {
       return await PromptHistory.delete({ id, workspaceId });
@@ -557,3 +512,4 @@ const Workspace = {
 };
 
 module.exports = { Workspace };
+

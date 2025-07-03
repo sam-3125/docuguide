@@ -10,7 +10,6 @@ import { useTranslation } from "react-i18next";
 export default function AttachItem() {
   const { t } = useTranslation();
   const { user } = useUser();
-  if (!!user && user.role === "default") return null;
 
   return (
     <>

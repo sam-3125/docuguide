@@ -7,6 +7,7 @@ import PrivateRoute, {
   ManagerRoute,
 } from "@/components/PrivateRoute";
 import { ToastContainer } from "react-toastify";
+import 'regenerator-runtime/runtime';
 import "react-toastify/dist/ReactToastify.css";
 import Login from "@/pages/Login";
 import SimpleSSOPassthrough from "@/pages/Login/SSO/simple";
