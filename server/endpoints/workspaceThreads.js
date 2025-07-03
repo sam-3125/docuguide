@@ -135,18 +135,49 @@ function workspaceThreadEndpoints(app) {
         const user = await userFromSession(request, response);
         const workspace = response.locals.workspace;
         const thread = response.locals.thread;
-        const history = await WorkspaceChats.where(
-          {
-            workspaceId: workspace.id,
-            user_id: user?.id || null,
-            thread_id: thread.id,
-            api_session_id: null, // Do not include API session chats.
-            include: true,
-          },
-          null,
-          { id: "asc" }
-        );
-
+        // In multi-user mode, only return the requesting user's thread chats (for all non-admins, including managers)
+        // This ensures managers cannot see admin thread chats or other users' thread chats
+        let history;
+        if (multiUserMode(response)) {
+          if (user.role === ROLES.admin) {
+            // Admins can see all thread chats in the workspace
+            history = await WorkspaceChats.where(
+              {
+                workspaceId: workspace.id,
+                thread_id: thread.id,
+                api_session_id: null,
+                include: true,
+              },
+              null,
+              { id: "asc" }
+            );
+          } else {
+            // Managers and regular users only see their own thread chats
+            history = await WorkspaceChats.where(
+              {
+                workspaceId: workspace.id,
+                user_id: user?.id || null,
+                thread_id: thread.id,
+                api_session_id: null,
+                include: true,
+              },
+              null,
+              { id: "asc" }
+            );
+          }
+        } else {
+          // Single-user mode: show all thread chats
+          history = await WorkspaceChats.where(
+            {
+              workspaceId: workspace.id,
+              thread_id: thread.id,
+              api_session_id: null,
+              include: true,
+            },
+            null,
+            { id: "asc" }
+          );
+        }
         response.status(200).json({ history: convertToChatHistory(history) });
       } catch (e) {
         console.error(e.message, e);

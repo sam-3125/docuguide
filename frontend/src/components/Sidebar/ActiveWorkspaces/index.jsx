@@ -26,12 +26,37 @@ export default function ActiveWorkspaces() {
 
   useEffect(() => {
     async function getWorkspaces() {
-      const workspaces = await Workspace.all();
+      let workspaces = await Workspace.all();
+      // Always filter out workspaces with admin members for non-admins
+      const isAdmin = user?.role === 'admin';
+      workspaces = await Promise.all(
+        workspaces.map(async (ws) => {
+          if (!ws.userIds || !ws.userRoles) {
+            try {
+              const res = await fetch(`/api/admin/workspaces/${ws.id}/users`);
+              const users = await res.json();
+              ws.userIds = users.map((u) => u.id);
+              ws.userRoles = users.map((u) => u.role);
+            } catch {
+              ws.userRoles = [];
+            }
+          }
+          return ws;
+        })
+      );
+      if (!isAdmin) {
+        // Failsafe: filter out workspaces with any admin member on the frontend
+        workspaces = workspaces.filter(
+          (ws) =>
+            !(ws.userRoles && ws.userRoles.some((role) => role === 'admin'))
+        );
+      }
+      console.log('[ActiveWorkspaces] user role:', user?.role, 'final workspaces:', workspaces.map(w => w.slug || w.id));
       setLoading(false);
       setWorkspaces(Workspace.orderWorkspaces(workspaces));
     }
     getWorkspaces();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -142,48 +167,46 @@ export default function ActiveWorkspaces() {
                                 </p>
                               </div>
                             </div>
-                            {user?.role !== "default" && (
-                              <div
-                                className={`flex items-center gap-x-[2px] transition-opacity duration-200 ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                            <div
+                              className={`flex items-center gap-x-[2px] transition-opacity duration-200 ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setSelectedWs(workspace);
+                                  showModal();
+                                }}
+                                className="border-none rounded-md flex items-center justify-center ml-auto p-[2px] hover:bg-[#646768] text-[#A7A8A9] hover:text-white"
                               >
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    setSelectedWs(workspace);
-                                    showModal();
-                                  }}
-                                  className="border-none rounded-md flex items-center justify-center ml-auto p-[2px] hover:bg-[#646768] text-[#A7A8A9] hover:text-white"
-                                >
-                                  <UploadSimple className="h-[20px] w-[20px]" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    navigate(
-                                      isInWorkspaceSettings
-                                        ? paths.workspace.chat(workspace.slug)
-                                        : paths.workspace.settings.generalAppearance(
-                                            workspace.slug
-                                          )
-                                    );
-                                  }}
-                                  className="rounded-md flex items-center justify-center text-[#A7A8A9] hover:text-white ml-auto p-[2px] hover:bg-[#646768]"
-                                  aria-label="General appearance settings"
-                                >
-                                  <GearSix
-                                    color={
-                                      isInWorkspaceSettings &&
-                                      workspace.slug === slug
-                                        ? "#46C8FF"
-                                        : undefined
-                                    }
-                                    className="h-[20px] w-[20px]"
-                                  />
-                                </button>
-                              </div>
-                            )}
+                                <UploadSimple className="h-[20px] w-[20px]" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  navigate(
+                                    isInWorkspaceSettings
+                                      ? paths.workspace.chat(workspace.slug)
+                                      : paths.workspace.settings.generalAppearance(
+                                          workspace.slug
+                                        )
+                                  );
+                                }}
+                                className="rounded-md flex items-center justify-center text-[#A7A8A9] hover:text-white ml-auto p-[2px] hover:bg-[#646768]"
+                                aria-label="General appearance settings"
+                              >
+                                <GearSix
+                                  color={
+                                    isInWorkspaceSettings &&
+                                    workspace.slug === slug
+                                      ? "#46C8FF"
+                                      : undefined
+                                  }
+                                  className="h-[20px] w-[20px]"
+                                />
+                              </button>
+                            </div>
                           </div>
                         </a>
                       </div>
