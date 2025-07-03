@@ -298,8 +298,18 @@ const Workspace = {
         workspaces = workspaces.filter(ws =>
           !ws.workspace_users.some(wu => userIdToRole[wu.user_id] === 'admin')
         );
+        console.log('[whereWithUser] AFTER FILTER (non-admin) user role:', user.role, 'workspaces:', workspaces.map(w => w.slug || w.id));
+      } else {
+        // If the user is an admin, filter out workspaces with any manager member
+        const userIds = workspaces.flatMap(ws => ws.workspace_users.map(wu => wu.user_id));
+        const uniqueUserIds = [...new Set(userIds)];
+        const users = await User.where({ id: { in: uniqueUserIds } });
+        const userIdToRole = Object.fromEntries(users.map(u => [u.id, u.role]));
+        workspaces = workspaces.filter(ws =>
+          !ws.workspace_users.some(wu => userIdToRole[wu.user_id] === 'manager')
+        );
+        console.log('[whereWithUser] AFTER FILTER (admin) user role:', user.role, 'workspaces:', workspaces.map(w => w.slug || w.id));
       }
-      console.log('[whereWithUser] AFTER FILTER user role:', user.role, 'workspaces:', workspaces.map(w => w.slug || w.id));
       // Remove workspace_users from result for compatibility
       workspaces = workspaces.map(ws => {
         const { workspace_users, ...rest } = ws;
@@ -502,3 +512,4 @@ const Workspace = {
 };
 
 module.exports = { Workspace };
+
