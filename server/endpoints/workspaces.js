@@ -43,9 +43,10 @@ function workspaceEndpoints(app) {
 
   app.post(
     "/workspace/new",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager, ROLES.default])],
     async (request, response) => {
       try {
+        console.log('Workspace.new called');
         const user = await userFromSession(request, response);
         const { name = null, onboardingComplete = false } = reqBody(request);
         const { workspace, message } = await Workspace.new(name, user?.id);
@@ -82,7 +83,7 @@ function workspaceEndpoints(app) {
 
   app.post(
     "/workspace/:slug/update",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager, ROLES.default])],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -114,7 +115,7 @@ function workspaceEndpoints(app) {
     "/workspace/:slug/upload",
     [
       validatedRequest,
-      flexUserRoleValid([ROLES.admin, ROLES.manager]),
+      flexUserRoleValid([ROLES.admin, ROLES.manager, ROLES.default]),
       handleFileUpload,
     ],
     async function (request, response) {
@@ -162,7 +163,7 @@ function workspaceEndpoints(app) {
 
   app.post(
     "/workspace/:slug/upload-link",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager, ROLES.default])],
     async (request, response) => {
       try {
         const Collector = new CollectorApi();
@@ -205,7 +206,7 @@ function workspaceEndpoints(app) {
 
   app.post(
     "/workspace/:slug/update-embeddings",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager, ROLES.default])],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -249,7 +250,7 @@ function workspaceEndpoints(app) {
 
   app.delete(
     "/workspace/:slug",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager, ROLES.default])],
     async (request, response) => {
       try {
         const { slug = "" } = request.params;
@@ -292,7 +293,7 @@ function workspaceEndpoints(app) {
 
   app.delete(
     "/workspace/:slug/reset-vector-db",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager, ROLES.default])],
     async (request, response) => {
       try {
         const { slug = "" } = request.params;
@@ -384,9 +385,21 @@ function workspaceEndpoints(app) {
           return;
         }
 
-        const history = multiUserMode(response)
-          ? await WorkspaceChats.forWorkspaceByUser(workspace.id, user.id)
-          : await WorkspaceChats.forWorkspace(workspace.id);
+        // In multi-user mode, only return the requesting user's chats (for all non-admins, including managers)
+        // This ensures managers cannot see admin chats or other users' chats
+        let history;
+        if (multiUserMode(response)) {
+          if (user.role === ROLES.admin) {
+            // Admins can see all chats in the workspace
+            history = await WorkspaceChats.forWorkspace(workspace.id);
+          } else {
+            // Managers and regular users only see their own chats
+            history = await WorkspaceChats.forWorkspaceByUser(workspace.id, user.id);
+          }
+        } else {
+          // Single-user mode: show all chats
+          history = await WorkspaceChats.forWorkspace(workspace.id);
+        }
         response.status(200).json({ history: convertToChatHistory(history) });
       } catch (e) {
         console.error(e.message, e);

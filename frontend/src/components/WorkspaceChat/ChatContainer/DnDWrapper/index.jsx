@@ -112,8 +112,6 @@ export function DnDFileUploaderProvider({ workspace, children }) {
           type: "attachment",
         });
       } else {
-        // If the user is a default user, we do not want to allow them to upload files.
-        if (!!user && user.role === "default") continue;
         newAccepted.push({
           uid: v4(),
           file,
@@ -149,8 +147,6 @@ export function DnDFileUploaderProvider({ workspace, children }) {
           type: "attachment",
         });
       } else {
-        // If the user is a default user, we do not want to allow them to upload files.
-        if (!!user && user.role === "default") continue;
         newAccepted.push({
           uid: v4(),
           file,
@@ -232,7 +228,8 @@ export default function DnDFileUploaderWrapper({ children }) {
     onDragLeave: () => setDragging(false),
   });
   const { user } = useUser();
-  const canUploadAll = !user || user?.role !== "default";
+  // Allow all users (admin, manager, default) to upload all file types
+  const canUploadAll = true;
 
   return (
     <div
