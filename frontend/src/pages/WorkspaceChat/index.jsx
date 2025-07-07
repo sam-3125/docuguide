@@ -99,8 +99,8 @@ function ShowWorkspaceChat() {
     if (!isResizing) return;
     
     const newWidth = window.innerWidth - e.clientX;
-    const minWidth = 300;
-    const maxWidth = window.innerWidth - 400; // Leave some space for sidebar and middle
+    const minWidth = window.innerWidth * 0.35;
+    const maxWidth = window.innerWidth * 0.75;
     
     if (newWidth >= minWidth && newWidth <= maxWidth) {
       setChatWidth(newWidth);
@@ -176,8 +176,8 @@ function ShowWorkspaceChat() {
           <div 
             style={{
               width: getChatWidth(),
-              minWidth: layoutMode === LAYOUT_MODES.FULLSCREEN ? 'auto' : '300px',
-              maxWidth: layoutMode === LAYOUT_MODES.FULLSCREEN ? 'none' : 'none'
+              minWidth: layoutMode === LAYOUT_MODES.FULLSCREEN ? 'auto' : `${window.innerWidth * 0.25}px`,
+              maxWidth: layoutMode === LAYOUT_MODES.FULLSCREEN ? 'none' : `${window.innerWidth * 0.75}px`
             }}
             className={`transition-all duration-300 flex-shrink-0 relative h-full ${layoutMode === LAYOUT_MODES.FULLSCREEN ? 'flex-1' : ''}`}
           >
