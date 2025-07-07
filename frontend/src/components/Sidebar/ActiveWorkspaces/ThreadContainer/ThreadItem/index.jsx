@@ -105,45 +105,30 @@ export default function ThreadItem({
         )}
         {!!thread.slug && !thread.deleted && (
           <div ref={optionsContainer} className="flex items-center">
-            {" "}
-            {/* Added flex and items-center */}
-            {ctrlPressed ? (
+            <div className="flex items-center w-fit group-hover:visible md:invisible gap-x-1">
               <button
                 type="button"
-                className="border-none"
-                onClick={() => toggleMarkForDeletion(thread.id)}
+                className="border-none p-1 rounded hover:bg-slate-500/20"
+                onClick={() => renameThread(thread)}
+                aria-label="Rename thread"
               >
-                <X
-                  className="text-zinc-300 light:text-theme-text-secondary hover:text-white hover:light:text-theme-text-primary"
-                  weight="bold"
-                  size={18}
+                <PencilSimple
+                  className="text-slate-300 light:text-theme-text-secondary hover:text-white hover:light:text-theme-text-primary"
+                  size={16}
                 />
               </button>
-            ) : (
-              <div className="flex items-center w-fit group-hover:visible md:invisible gap-x-1">
-                <button
-                  type="button"
-                  className="border-none"
-                  onClick={() => setShowOptions(!showOptions)}
-                  aria-label="Thread options"
-                >
-                  <DotsThree
-                    className="text-slate-300 light:text-theme-text-secondary hover:text-white hover:light:text-theme-text-primary"
-                    size={25}
-                  />
-                </button>
-              </div>
-            )}
-            {showOptions && (
-              <OptionsMenu
-                containerRef={optionsContainer}
-                workspace={workspace}
-                thread={thread}
-                onRemove={onRemove}
-                close={() => setShowOptions(false)}
-                currentThreadSlug={threadSlug}
-              />
-            )}
+              <button
+                type="button"
+                className="border-none p-1 rounded hover:bg-red-500/20"
+                onClick={() => handleDelete(thread)}
+                aria-label="Delete thread"
+              >
+                <Trash
+                  className="text-slate-300 light:text-theme-text-secondary hover:text-red-400 hover:light:text-red-400"
+                  size={16}
+                />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -151,118 +136,48 @@ export default function ThreadItem({
   );
 }
 
-function OptionsMenu({
-  containerRef,
-  workspace,
-  thread,
-  onRemove,
-  close,
-  currentThreadSlug,
-}) {
-  const menuRef = useRef(null);
-
-  // Ref menu options
-  const outsideClick = (e) => {
-    if (!menuRef.current) return false;
-    if (
-      !menuRef.current?.contains(e.target) &&
-      !containerRef.current?.contains(e.target)
-    )
-      close();
-    return false;
-  };
-
-  const isEsc = (e) => {
-    if (e.key === "Escape" || e.key === "Esc") close();
-  };
-
-  function cleanupListeners() {
-    window.removeEventListener("click", outsideClick);
-    window.removeEventListener("keyup", isEsc);
+async function renameThread(thread) {
+  const name = window
+    .prompt("What would you like to rename this thread to?")
+    ?.trim();
+  if (!name || name.length === 0) {
+    return;
   }
-  // end Ref menu options
 
-  useEffect(() => {
-    function setListeners() {
-      if (!menuRef?.current || !containerRef.current) return false;
-      window.document.addEventListener("click", outsideClick);
-      window.document.addEventListener("keyup", isEsc);
-    }
-
-    setListeners();
-    return cleanupListeners;
-  }, [menuRef.current, containerRef.current]);
-
-  const renameThread = async () => {
-    const name = window
-      .prompt("What would you like to rename this thread to?")
-      ?.trim();
-    if (!name || name.length === 0) {
-      close();
-      return;
-    }
-
-    const { message } = await Workspace.threads.update(
-      workspace.slug,
-      thread.slug,
-      { name }
-    );
-    if (!!message) {
-      showToast(`Thread could not be updated! ${message}`, "error", {
-        clear: true,
-      });
-      close();
-      return;
-    }
-
-    thread.name = name;
-    close();
-  };
-
-  const handleDelete = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this thread? All of its chats will be deleted. You cannot undo this."
-      )
-    )
-      return;
-    const success = await Workspace.threads.delete(workspace.slug, thread.slug);
-    if (!success) {
-      showToast("Thread could not be deleted!", "error", { clear: true });
-      return;
-    }
-    if (success) {
-      showToast("Thread deleted successfully!", "success", { clear: true });
-      onRemove(thread.id);
-      // Redirect if deleting the active thread
-      if (currentThreadSlug === thread.slug) {
-        window.location.href = paths.workspace.chat(workspace.slug);
-      }
-      return;
-    }
-  };
-
-  return (
-    <div
-      ref={menuRef}
-      className="absolute w-fit z-[20] top-[25px] right-[10px] bg-zinc-900 light:bg-theme-bg-sidebar light:border-[1px] light:border-theme-sidebar-border rounded-lg p-1"
-    >
-      <button
-        onClick={renameThread}
-        type="button"
-        className="w-full rounded-md flex items-center p-2 gap-x-2 hover:bg-slate-500/20 text-slate-300 light:text-theme-text-primary"
-      >
-        <PencilSimple size={18} />
-        <p className="text-sm">Rename</p>
-      </button>
-      <button
-        onClick={handleDelete}
-        type="button"
-        className="w-full rounded-md flex items-center p-2 gap-x-2 hover:bg-red-500/20 text-slate-300 light:text-theme-text-primary hover:text-red-100"
-      >
-        <Trash size={18} />
-        <p className="text-sm">Delete Thread</p>
-      </button>
-    </div>
+  const { message } = await Workspace.threads.update(
+    workspace.slug,
+    thread.slug,
+    { name }
   );
+  if (!!message) {
+    showToast(`Thread could not be updated! ${message}`, "error", {
+      clear: true,
+    });
+    return;
+  }
+
+  thread.name = name;
+}
+
+async function handleDelete(thread) {
+  if (
+    !window.confirm(
+      "Are you sure you want to delete this thread? All of its chats will be deleted. You cannot undo this."
+    )
+  )
+    return;
+  const success = await Workspace.threads.delete(workspace.slug, thread.slug);
+  if (!success) {
+    showToast("Thread could not be deleted!", "error", { clear: true });
+    return;
+  }
+  if (success) {
+    showToast("Thread deleted successfully!", "success", { clear: true });
+    onRemove(thread.id);
+    // Redirect if deleting the active thread
+    if (currentThreadSlug === thread.slug) {
+      window.location.href = paths.workspace.chat(workspace.slug);
+    }
+    return;
+  }
 }

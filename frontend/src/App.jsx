@@ -19,6 +19,9 @@ import { LogoProvider } from "./LogoContext";
 import { FullScreenLoader } from "./components/Preloader";
 import { ThemeProvider } from "./ThemeContext";
 import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
+import Workspace from "@/models/workspace";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Main = lazy(() => import("@/pages/Main"));
 const InvitePage = lazy(() => import("@/pages/Invite"));
@@ -91,6 +94,32 @@ const SystemPromptVariables = lazy(
   () => import("@/pages/Admin/SystemPromptVariables")
 );
 
+function AutoWorkspaceRedirect() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    async function goToWorkspace() {
+      let workspaces = await Workspace.all();
+      if (!workspaces.length) {
+        const { workspace } = await Workspace.new();
+        const { thread } = await Workspace.threads.new(workspace.slug);
+        navigate(`/workspace/${workspace.slug}/t/${thread.slug}`);
+      } else {
+        // Go to the first workspace's first thread
+        const ws = workspaces[0];
+        const { threads } = await Workspace.threads.all(ws.slug);
+        if (threads.length) {
+          navigate(`/workspace/${ws.slug}/t/${threads[0].slug}`);
+        } else {
+          const { thread } = await Workspace.threads.new(ws.slug);
+          navigate(`/workspace/${ws.slug}/t/${thread.slug}`);
+        }
+      }
+    }
+    goToWorkspace();
+  }, [navigate]);
+  return null;
+}
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -100,7 +129,7 @@ export default function App() {
             <PfpProvider>
               <I18nextProvider i18n={i18n}>
                 <Routes>
-                  <Route path="/" element={<PrivateRoute Component={Main} />} />
+                  <Route path="/" element={<PrivateRoute Component={AutoWorkspaceRedirect} />} />
                   <Route path="/login" element={<Login />} />
                   <Route
                     path="/sso/simple"
@@ -113,11 +142,11 @@ export default function App() {
                   />
                   <Route
                     path="/workspace/:slug"
-                    element={<PrivateRoute Component={WorkspaceChat} />}
+                    element={<PrivateRoute Component={WorkspaceChat} hideUserMenu={true} />}
                   />
                   <Route
                     path="/workspace/:slug/t/:threadSlug"
-                    element={<PrivateRoute Component={WorkspaceChat} />}
+                    element={<PrivateRoute Component={WorkspaceChat} hideUserMenu={true} />}
                   />
                   <Route path="/accept-invite/:code" element={<InvitePage />} />
 
