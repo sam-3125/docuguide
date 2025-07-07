@@ -95,14 +95,15 @@ export default function Sidebar({ layoutMode = 'default', onLayoutModeChange, ac
             ref={sidebarRef}
             style={{
               width: 'auto',
-              minWidth: '250px'
+              minWidth: '280px',
+              maxWidth: '350px'
             }}
             className="relative m-[16px] rounded-[16px] bg-theme-bg-sidebar border-[2px] border-theme-sidebar-border light:border-none p-[10px] h-[calc(100%-76px)]"
           >
             <div className="flex flex-col h-full overflow-x-hidden">
               <div 
                 style={{
-                  minWidth: '235px'
+                  minWidth: '260px'
                 }}
                 className="flex-grow flex flex-col"
               >

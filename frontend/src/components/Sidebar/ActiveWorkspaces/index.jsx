@@ -156,12 +156,12 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
                             )}
                             <div className={`flex items-center space-x-2 overflow-hidden ${isMinimized ? 'justify-center' : 'flex-grow'}`}>
                               {!isMinimized && (
-                                <div className="w-[130px] overflow-hidden">
+                                <div className="flex-1 min-w-0 overflow-hidden">
                                   <p
                                     className={`
                                     text-[14px] leading-loose whitespace-nowrap overflow-hidden text-white
                                     ${isActive ? "font-bold" : "font-medium"} truncate
-                                    w-full group-hover:w-[130px] group-hover:font-bold group-hover:duration-200
+                                    w-full group-hover:font-bold group-hover:duration-200
                                   `}
                                   >
                                     {workspace.name}

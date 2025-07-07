@@ -62,13 +62,13 @@ function ShowWorkspaceChat() {
     switch (layoutMode) {
       case LAYOUT_MODES.DEFAULT:
         return {
-          sidebar: "w-[292px]",
+          sidebar: "w-[320px]",
           chat: "w-[400px]",
           middle: "flex-1"
         };
       case LAYOUT_MODES.FULLSCREEN:
         return {
-          sidebar: "w-[292px]",
+          sidebar: "w-[320px]",
           chat: "flex-1",
           middle: "hidden"
         };
@@ -80,7 +80,7 @@ function ShowWorkspaceChat() {
         };
       default:
         return {
-          sidebar: "w-[292px]",
+          sidebar: "w-[320px]",
           chat: "w-[400px]",
           middle: "flex-1"
         };
@@ -141,9 +141,9 @@ function ShowWorkspaceChat() {
         {/* Sidebar */}
         <div 
           style={{
-            width: layoutMode === LAYOUT_MODES.MINIMIZED ? '80px' : layoutMode === LAYOUT_MODES.DEFAULT ? '292px' : '292px',
-            minWidth: layoutMode === LAYOUT_MODES.MINIMIZED ? '80px' : layoutMode === LAYOUT_MODES.DEFAULT ? '292px' : '292px',
-            maxWidth: layoutMode === LAYOUT_MODES.MINIMIZED ? '80px' : 'none',
+            width: layoutMode === LAYOUT_MODES.MINIMIZED ? '80px' : layoutMode === LAYOUT_MODES.DEFAULT ? '320px' : '320px',
+            minWidth: layoutMode === LAYOUT_MODES.MINIMIZED ? '80px' : layoutMode === LAYOUT_MODES.DEFAULT ? '280px' : '280px',
+            maxWidth: layoutMode === LAYOUT_MODES.MINIMIZED ? '80px' : '350px',
             transition: 'all 0.3s ease'
           }}
           className="flex-shrink-0 h-full"
