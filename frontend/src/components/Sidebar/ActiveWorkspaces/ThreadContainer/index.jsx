@@ -4,7 +4,7 @@ import showToast from "@/utils/toast";
 import { Plus, CircleNotch, Trash } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import ThreadItem from "./ThreadItem";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 export const THREAD_RENAME_EVENT = "renameThread";
 
 export default function ThreadContainer({ workspace }) {
@@ -12,6 +12,7 @@ export default function ThreadContainer({ workspace }) {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ctrlPressed, setCtrlPressed] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const chatHandler = (event) => {
@@ -90,7 +91,7 @@ export default function ThreadContainer({ workspace }) {
 
     // Only redirect if current thread is being deleted
     if (slugs.includes(threadSlug)) {
-      window.location.href = paths.workspace.chat(workspace.slug);
+      navigate(paths.workspace.chat(workspace.slug));
     }
   };
 
@@ -161,8 +162,8 @@ function NewThreadButton({ workspace }) {
   const onClick = async () => {
     setLoading(true);
     const { thread, error } = await Workspace.threads.new(workspace.slug);
-    if (!!error) {
-      showToast(`Could not create thread - ${error}`, "error", { clear: true });
+    if (!!error || !thread || !thread.slug) {
+      showToast(`Could not create thread - ${error || "Unknown error"}`, "error", { clear: true });
       setLoading(false);
       return;
     }

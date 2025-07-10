@@ -12,11 +12,11 @@ export default function Resources() {
   };
 
   return (
-    <div>
+    <div className="mt-12 sm:mt-16 md:mt-20 py-8 sm:py-12 md:py-16">
       <h1 className="text-theme-home-text uppercase text-sm font-semibold mb-4">
         {t("main-page.resources.title")}
       </h1>
-      <div className="flex gap-x-6">
+      <div className="flex flex-col sm:flex-row gap-y-2 gap-x-6 w-full p-2 sm:p-4 md:p-6">
         <a
           target="_blank"
           rel="noopener noreferrer "

@@ -142,7 +142,7 @@ export default function Checklist() {
   return (
     <div
       ref={containerRef}
-      className="transition-height duration-300 h-[100%] overflow-y-hidden relative"
+      className="transition-height duration-300 h-[100%] overflow-y-hidden relative mt-12 sm:mt-16 md:mt-20 py-8 sm:py-12 md:py-16"
     >
       <div
         className={`${isCompleted ? "checklist-completed" : "hidden"} absolute top-0 left-0 w-full h-full p-2 z-10 transition-all duration-300`}

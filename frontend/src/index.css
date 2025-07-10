@@ -1108,3 +1108,16 @@ does not extend the close button beyond the viewport. */
   -webkit-animation: fadein 0.3s linear forwards;
   animation: fadein 0.3s linear forwards;
 }
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #b3b3b3 #f0f0f0;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  background: #f0f0f0;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #b3b3b3;
+  border-radius: 4px;
+}

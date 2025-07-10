@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Plus, List } from "@phosphor-icons/react";
+import { Plus, List, SignOut, House, ChatCircle, Folder, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { SidebarSimple } from "@phosphor-icons/react";
 import NewWorkspaceModal, {
   useNewWorkspaceModal,
 } from "../Modals/NewWorkspace";
@@ -8,81 +9,201 @@ import useLogo from "@/hooks/useLogo";
 import useUser from "@/hooks/useUser";
 import Footer from "../Footer";
 import SettingsButton from "../SettingsButton";
+import usePfp from "@/hooks/usePfp";
+import { userFromStorage } from "@/utils/request";
 import { Link } from "react-router-dom";
 import paths from "@/utils/paths";
 import { useTranslation } from "react-i18next";
 import { useSidebarToggle, ToggleSidebarButton } from "./SidebarToggle";
+import { AUTH_TIMESTAMP, AUTH_TOKEN, AUTH_USER } from "@/utils/constants";
 
-export default function Sidebar() {
+export default function Sidebar({ layoutMode = 'default', onLayoutModeChange, activeSection, onActiveSectionChange }) {
   const { user } = useUser();
   const { logo } = useLogo();
   const sidebarRef = useRef(null);
-  const { showSidebar, setShowSidebar, canToggleSidebar } = useSidebarToggle();
+  const { showSidebar: canToggleSidebar, setShowSidebar: setCanToggleSidebar } = useSidebarToggle();
   const {
     showing: showingNewWsModal,
     showModal: showNewWsModal,
     hideModal: hideNewWsModal,
   } = useNewWorkspaceModal();
   const { t } = useTranslation();
+  const [workspaceExpanded, setWorkspaceExpanded] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+
+  const isMinimized = layoutMode === 'minimized';
+
+  const toggleMinimize = () => {
+    const newMode = isMinimized ? 'default' : 'minimized';
+    onLayoutModeChange?.(newMode);
+  };
+
+  // Collapse workspace/threads if sidebar is closed
+  useEffect(() => {
+    if (!showSidebar && workspaceExpanded) {
+      setWorkspaceExpanded(false);
+    }
+  }, [showSidebar, workspaceExpanded]);
 
   return (
     <>
+      {/* Sidebar main container */}
       <div
+        className="fixed top-0 left-0 h-full z-50 transition-all duration-300 bg-theme-bg-container border-r border-theme-sidebar-border flex flex-col"
         style={{
-          width: showSidebar ? "292px" : "0px",
-          paddingLeft: showSidebar ? "0px" : "16px",
+          width: showSidebar ? '260px' : '64px',
+          minWidth: showSidebar ? '260px' : '64px',
+          maxWidth: showSidebar ? '260px' : '64px',
         }}
-        className="transition-all duration-500"
       >
-        <div className="flex shrink-0 w-full justify-center my-[18px]">
-          <div className="flex justify-between w-[250px] min-w-[250px]">
-            <Link to={paths.home()} aria-label="Home">
-              <img
-                src={logo}
-                alt="Logo"
-                className={`rounded max-h-[24px] object-contain transition-opacity duration-500 ${showSidebar ? "opacity-100" : "opacity-0"}`}
-              />
-            </Link>
-            {canToggleSidebar && (
-              <ToggleSidebarButton
-                showSidebar={showSidebar}
-                setShowSidebar={setShowSidebar}
-              />
-            )}
+        {/* Logo at the top, only when expanded */}
+        {showSidebar && (
+          <div className="flex items-center px-4 pt-4 pb-2">
+            <img
+              src={logo}
+              alt="Logo"
+              className="rounded max-h-[32px] object-contain transition-opacity duration-500 opacity-100"
+            />
           </div>
-        </div>
+        )}
+        {/* Toggle button at the top left inside the sidebar */}
         <div
-          ref={sidebarRef}
-          className="relative m-[16px] rounded-[16px] bg-theme-bg-sidebar border-[2px] border-theme-sidebar-border light:border-none min-w-[250px] p-[10px] h-[calc(100%-76px)]"
+          className="flex items-center justify-start px-2 pb-2"
+          style={{ marginTop: !showSidebar ? 32 : 0 }}
         >
-          <div className="flex flex-col h-full overflow-x-hidden">
-            <div className="flex-grow flex flex-col min-w-[235px]">
-              <div className="relative h-[calc(100%-60px)] flex flex-col w-full justify-between pt-[10px] overflow-y-scroll no-scroll">
-                <div className="flex flex-col gap-y-2 pb-[60px] overflow-y-scroll no-scroll">
-                  <div className="flex gap-x-2 items-center justify-between">
-                    {user && (
-                      <button
-                        onClick={showNewWsModal}
-                        className="light:bg-[#C2E7FE] light:hover:bg-[#7CD4FD] flex flex-grow w-[75%] h-[44px] gap-x-2 py-[5px] px-2.5 mb-2 bg-white rounded-[8px] text-sidebar justify-center items-center hover:bg-opacity-80 transition-all duration-300"
-                      >
-                        <Plus size={18} weight="bold" />
-                        <p className="text-sidebar text-sm font-semibold">
-                          {t("new-workspace.title")}
-                        </p>
-                      </button>
-                    )}
-                  </div>
-                  <ActiveWorkspaces />
-                </div>
+          <button
+            onClick={() => setShowSidebar((prev) => !prev)}
+            className="bg-theme-bg-sidebar border border-theme-sidebar-border rounded-md p-2 hover:bg-theme-sidebar-item-hover transition-all"
+            title={showSidebar ? 'Collapse Sidebar' : 'Expand Sidebar'}
+          >
+            <SidebarSimple
+              size={24}
+              weight="fill"
+              className={`transition-transform duration-300 text-theme-text-primary ${showSidebar ? 'rotate-180' : ''}`}
+            />
+          </button>
+        </div>
+        {/* Navigation section */}
+        <nav className="flex-1 flex flex-col gap-y-1 mt-2">
+          <button
+            onClick={() => onActiveSectionChange('home')}
+            className={`flex items-center ${showSidebar ? 'gap-x-3 justify-start px-4' : 'justify-center'} py-2 rounded-md transition-all duration-200 ${
+              activeSection === 'home'
+                ? 'bg-theme-sidebar-item-selected text-white'
+                : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
+            }`}
+          >
+            <House size={22} weight={activeSection === 'home' ? 'fill' : 'regular'} />
+            {showSidebar && <span className="text-base font-medium">Home</span>}
+          </button>
+          <button
+            onClick={() => onActiveSectionChange('chat')}
+            className={`flex items-center ${showSidebar ? 'gap-x-3 justify-start px-4' : 'justify-center'} py-2 rounded-md transition-all duration-200 ${
+              activeSection === 'chat'
+                ? 'bg-theme-sidebar-item-selected text-white'
+                : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
+            }`}
+          >
+            <ChatCircle size={22} weight={activeSection === 'chat' ? 'fill' : 'regular'} />
+            {showSidebar && <span className="text-base font-medium">Chat</span>}
+          </button>
+          <button
+            onClick={() => {
+              if (!showSidebar) {
+                setShowSidebar(true);
+                onActiveSectionChange('workspace');
+                setWorkspaceExpanded(true);
+              } else if (activeSection === 'workspace') {
+                setWorkspaceExpanded(!workspaceExpanded);
+              } else {
+                onActiveSectionChange('workspace');
+                setWorkspaceExpanded(true);
+              }
+            }}
+            className={`flex items-center ${showSidebar ? 'gap-x-3 justify-start px-4' : 'justify-center'} py-2 rounded-md transition-all duration-200 ${
+              activeSection === 'workspace'
+                ? 'bg-theme-sidebar-item-selected text-white'
+                : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
+            }`}
+          >
+            <Folder size={22} weight={activeSection === 'workspace' ? 'fill' : 'regular'} className={`transition-transform duration-300 ${workspaceExpanded ? 'rotate-90' : ''}`} />
+            {showSidebar && <span className="text-base font-medium">Workspace</span>}
+          </button>
+          {/* New Workspace button - only show when expanded and workspace section is active */}
+          {showSidebar && activeSection === 'workspace' && workspaceExpanded && (
+            <button
+              onClick={showNewWsModal}
+              className="flex items-center gap-x-3 justify-start px-4 py-2 rounded-md bg-theme-bg-sidebar border border-theme-sidebar-border hover:bg-theme-sidebar-item-hover transition-all text-theme-text-primary w-full"
+              style={{ minHeight: 40 }}
+            >
+              <Plus size={18} weight="bold" />
+              <span className="text-base font-medium">New Workspace</span>
+            </button>
+          )}
+          {/* Workspace Content - Only show when workspace section is active and expanded, and directly below the Workspace button */}
+          {showSidebar && activeSection === 'workspace' && workspaceExpanded && (
+            <div className={`overflow-hidden transition-all duration-300 ${workspaceExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} ml-2 mr-2 mb-2`}>
+              <div style={{ overflowY: 'auto', maxHeight: '300px', background: 'rgba(30, 41, 59, 0.12)', borderRadius: '8px', padding: '8px', marginTop: '8px' }}>
+                <ActiveWorkspaces isMinimized={false} />
               </div>
-              <div className="absolute bottom-0 left-0 right-0 pt-4 pb-3 rounded-b-[16px] bg-theme-bg-sidebar bg-opacity-80 backdrop-filter backdrop-blur-md z-1">
-                <Footer />
+            </div>
+          )}
+        </nav>
+        {/* Footer: user info, settings, logout - layout depends on sidebar state */}
+        {showSidebar ? (
+          <div className="absolute bottom-0 left-0 right-0 pt-4 pb-3 px-3 rounded-b-[16px] bg-theme-bg-sidebar bg-opacity-80 backdrop-filter backdrop-blur-md z-1">
+            <div className="flex items-center justify-between gap-x-2">
+              <div className="flex items-center gap-x-2">
+                <UserDisplay />
+                <span className="text-white text-sm truncate max-w-[80px]">{user?.username || "Guest"}</span>
+              </div>
+              <div className="flex items-center gap-x-2">
+                <SettingsButton />
+                <button
+                  onClick={() => {
+                    window.localStorage.removeItem(AUTH_USER);
+                    window.localStorage.removeItem(AUTH_TOKEN);
+                    window.localStorage.removeItem(AUTH_TIMESTAMP);
+                    window.location.replace(paths.home());
+                  }}
+                  className="transition-all duration-300 p-2 rounded-full bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover"
+                  aria-label="Sign out"
+                >
+                  <SignOut
+                    className="h-5 w-5"
+                    weight="fill"
+                    color="var(--theme-sidebar-footer-icon-fill)"
+                  />
+                </button>
               </div>
             </div>
           </div>
-        </div>
-        {showingNewWsModal && <NewWorkspaceModal hideModal={hideNewWsModal} />}
+        ) : (
+          <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center gap-y-2 pb-4">
+            <SettingsButton />
+            <button
+              onClick={() => {
+                window.localStorage.removeItem(AUTH_USER);
+                window.localStorage.removeItem(AUTH_TOKEN);
+                window.localStorage.removeItem(AUTH_TIMESTAMP);
+                window.location.replace(paths.home());
+              }}
+              className="transition-all duration-300 p-2 rounded-full bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover"
+              aria-label="Sign out"
+            >
+              <SignOut
+                className="h-5 w-5"
+                weight="fill"
+                color="var(--theme-sidebar-footer-icon-fill)"
+              />
+            </button>
+            <div className="mt-2">
+              <UserDisplay />
+            </div>
+          </div>
+        )}
       </div>
+      {showingNewWsModal && <NewWorkspaceModal hideModal={hideNewWsModal} />}
     </>
   );
 }
@@ -193,8 +314,32 @@ export function SidebarMobileHeader() {
                   <ActiveWorkspaces />
                 </div>
               </div>
-              <div className="z-99 absolute bottom-0 left-0 right-0 pt-2 pb-6 rounded-br-[26px] bg-theme-bg-sidebar bg-opacity-80 backdrop-filter backdrop-blur-md">
-                <Footer />
+              <div className="z-99 absolute bottom-0 left-0 right-0 pt-2 pb-6 px-3 rounded-br-[26px] bg-theme-bg-sidebar bg-opacity-80 backdrop-filter backdrop-blur-md">
+                <div className="flex items-center justify-between gap-x-2">
+                  <div className="flex items-center gap-x-2">
+                    <UserDisplay />
+                    <span className="text-white text-sm truncate max-w-[80px]">{user.username}</span>
+                  </div>
+                  <div className="flex items-center gap-x-2">
+                    <SettingsButton />
+                    <button
+                      onClick={() => {
+                        window.localStorage.removeItem(AUTH_USER);
+                        window.localStorage.removeItem(AUTH_TOKEN);
+                        window.localStorage.removeItem(AUTH_TIMESTAMP);
+                        window.location.replace(paths.home());
+                      }}
+                      className="transition-all duration-300 p-2 rounded-full bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover"
+                      aria-label="Sign out"
+                    >
+                      <SignOut
+                        className="h-5 w-5"
+                        weight="fill"
+                        color="var(--theme-sidebar-footer-icon-fill)"
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -202,5 +347,28 @@ export function SidebarMobileHeader() {
         {showingNewWsModal && <NewWorkspaceModal hideModal={hideNewWsModal} />}
       </div>
     </>
+  );
+}
+
+function UserDisplay() {
+  const { pfp } = usePfp();
+  const user = userFromStorage();
+
+  if (pfp) {
+    return (
+      <div className="w-[24px] h-[24px] rounded-full flex-shrink-0 overflow-hidden transition-all duration-300 bg-gray-100">
+        <img
+          src={pfp}
+          alt="User profile picture"
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-[24px] h-[24px] rounded-full flex items-center justify-center bg-theme-sidebar-footer-icon text-white text-xs font-semibold">
+      {user?.username?.slice(0, 2) || "AA"}
+    </div>
   );
 }
