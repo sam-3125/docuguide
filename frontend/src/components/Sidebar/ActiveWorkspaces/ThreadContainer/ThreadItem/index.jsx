@@ -8,8 +8,8 @@ import {
   Trash,
   X,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 
 const THREAD_CALLOUT_DETAIL_WIDTH = 26;
 export default function ThreadItem({
@@ -29,6 +29,74 @@ export default function ThreadItem({
   const linkTo = !thread.slug
     ? paths.workspace.chat(slug)
     : paths.workspace.thread(slug, thread.slug);
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(thread.name);
+  const inputRef = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  async function handleRenameSubmit() {
+    const name = editValue.trim();
+    if (!name || name === thread.name) {
+      setEditing(false);
+      setEditValue(thread.name);
+      return;
+    }
+    const { message } = await Workspace.threads.update(
+      workspace.slug,
+      thread.slug,
+      { name }
+    );
+    if (!!message) {
+      showToast(`Thread could not be updated! ${message}`, "error", {
+        clear: true,
+      });
+      setEditValue(thread.name);
+      setEditing(false);
+      return;
+    }
+    window.dispatchEvent(
+      new CustomEvent("renameThread", {
+        detail: { threadSlug: thread.slug, newName: name },
+      })
+    );
+    setEditing(false);
+  }
+
+  function handleRenameKeyDown(e) {
+    if (e.key === "Enter") {
+      handleRenameSubmit();
+    } else if (e.key === "Escape") {
+      setEditing(false);
+      setEditValue(thread.name);
+    }
+  }
+
+  async function handleDelete() {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this thread? All of its chats will be deleted. You cannot undo this."
+      )
+    )
+      return;
+    const success = await Workspace.threads.delete(workspace.slug, thread.slug);
+    if (!success) {
+      showToast("Thread could not be deleted!", "error", { clear: true });
+      return;
+    }
+    showToast("Thread deleted successfully!", "success", { clear: true });
+    onRemove(thread.id);
+    // Redirect if deleting the active thread
+    if (thread.slug === (window.location.pathname.split("/").pop())) {
+      navigate(paths.workspace.chat(workspace.slug));
+    }
+  }
 
   return (
     <div
@@ -94,13 +162,25 @@ export default function ThreadItem({
             className="w-full pl-2 py-1 overflow-hidden"
             aria-current={isActive ? "page" : ""}
           >
-            <p
-              className={`text-left text-sm truncate max-w-[150px] ${
-                isActive ? "font-medium text-white" : "text-theme-text-primary"
-              }`}
-            >
-              {thread.name}
-            </p>
+            {editing ? (
+              <input
+                ref={inputRef}
+                className={`text-left text-sm truncate max-w-[150px] bg-white text-black rounded px-1 py-0.5 border border-blue-400 focus:outline-none`}
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onBlur={handleRenameSubmit}
+                onKeyDown={handleRenameKeyDown}
+                maxLength={64}
+              />
+            ) : (
+              <p
+                className={`text-left text-sm truncate max-w-[150px] ${
+                  isActive ? "font-medium text-white" : "text-theme-text-primary"
+                }`}
+              >
+                {thread.name}
+              </p>
+            )}
           </a>
         )}
         {!!thread.slug && !thread.deleted && (
@@ -109,7 +189,7 @@ export default function ThreadItem({
               <button
                 type="button"
                 className="border-none p-1 rounded hover:bg-slate-500/20"
-                onClick={() => renameThread(thread)}
+                onClick={() => setEditing(true)}
                 aria-label="Rename thread"
               >
                 <PencilSimple
@@ -120,7 +200,7 @@ export default function ThreadItem({
               <button
                 type="button"
                 className="border-none p-1 rounded hover:bg-red-500/20"
-                onClick={() => handleDelete(thread)}
+                onClick={handleDelete}
                 aria-label="Delete thread"
               >
                 <Trash
@@ -134,50 +214,4 @@ export default function ThreadItem({
       </div>
     </div>
   );
-}
-
-async function renameThread(thread) {
-  const name = window
-    .prompt("What would you like to rename this thread to?")
-    ?.trim();
-  if (!name || name.length === 0) {
-    return;
-  }
-
-  const { message } = await Workspace.threads.update(
-    workspace.slug,
-    thread.slug,
-    { name }
-  );
-  if (!!message) {
-    showToast(`Thread could not be updated! ${message}`, "error", {
-      clear: true,
-    });
-    return;
-  }
-
-  thread.name = name;
-}
-
-async function handleDelete(thread) {
-  if (
-    !window.confirm(
-      "Are you sure you want to delete this thread? All of its chats will be deleted. You cannot undo this."
-    )
-  )
-    return;
-  const success = await Workspace.threads.delete(workspace.slug, thread.slug);
-  if (!success) {
-    showToast("Thread could not be deleted!", "error", { clear: true });
-    return;
-  }
-  if (success) {
-    showToast("Thread deleted successfully!", "success", { clear: true });
-    onRemove(thread.id);
-    // Redirect if deleting the active thread
-    if (currentThreadSlug === thread.slug) {
-      window.location.href = paths.workspace.chat(workspace.slug);
-    }
-    return;
-  }
 }

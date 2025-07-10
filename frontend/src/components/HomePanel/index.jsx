@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   FileText,
   Brain,
-  MagnifyingGlass,
+  MagnifyingGlass, // <--- Change 'Search' to 'MagnifyingGlass' here
   PresentationChart,
   Shield,
   Lightning,
@@ -13,7 +13,7 @@ import {
   Database,
   Cloud,
   Upload,
-  Search,
+  // Remove Search from here as it's replaced by MagnifyingGlass
   ChartLine,
   FileSearch,
   Robot,
@@ -23,6 +23,11 @@ import {
   Users
 } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
+import { useNewWorkspaceModal } from "@/components/Modals/NewWorkspace";
+import NewWorkspaceModal from "@/components/Modals/NewWorkspace";
+import Workspace from "@/models/workspace";
+import paths from "@/utils/paths";
+import { useNavigate } from "react-router-dom";
 
 // Animation variants
 const containerStagger = {
@@ -65,6 +70,12 @@ const pulseGlow = {
 export default function HomePanel() {
   const { t } = useTranslation();
   const featuresRef = useRef(null);
+  const navigate = useNavigate();
+  const {
+    showing: showingNewWsModal,
+    showModal: showNewWsModal,
+    hideModal: hideNewWsModal,
+  } = useNewWorkspaceModal();
 
   const features = [
     {
@@ -78,7 +89,7 @@ export default function HomePanel() {
       description: "Intelligent document processing and insightful content extraction."
     },
     {
-      icon: <MagnifyingGlass size={28} className="text-purple-500" />,
+      icon: <MagnifyingGlass size={28} className="text-purple-500" />, // <--- Change 'Search' to 'MagnifyingGlass' here
       title: "Smart Search",
       description: "Find information instantly across all your documents."
     },
@@ -113,7 +124,7 @@ export default function HomePanel() {
       benefits: ["Content summarization", "Key insight extraction", "Pattern recognition", "Smart categorization"]
     },
     {
-      icon: <Search size={32} className="text-purple-500" />,
+      icon: <MagnifyingGlass size={32} className="text-purple-500" />, // <--- Change 'Search' to 'MagnifyingGlass' here
       title: "Intelligent Search & Discovery",
       description: "Semantic search capabilities that understand context and meaning, not just keywords. Find relevant information across your entire document library.",
       benefits: ["Semantic search", "Context understanding", "Cross-document search", "Smart suggestions"]
@@ -138,17 +149,32 @@ export default function HomePanel() {
     }
   ];
 
-  const handleGetStarted = () => {
-    // Navigate to workspace section
-    const workspaceButton = document.querySelector('[data-section="workspace"]');
-    if (workspaceButton) {
-      workspaceButton.click();
+  const handleGetStarted = async () => {
+    // Try to create a workspace named 'default'.
+    let workspace;
+    try {
+      const res = await Workspace.new({ name: "default" });
+      workspace = res.workspace;
+      // If workspace already exists, backend should return the existing one or error.
+      // If error, try to fetch all workspaces and find 'default'.
+      if (!workspace) {
+        const all = await Workspace.all?.();
+        workspace = all?.find(w => w.name === "default");
+      }
+      if (workspace) {
+        window.dispatchEvent(new Event("workspaceListShouldRefresh"));
+        navigate(paths.workspace.chat(workspace.slug));
+      } else {
+        showNewWsModal();
+      }
+    } catch (e) {
+      showNewWsModal();
     }
   };
 
   const handleLearnMore = () => {
     // Scroll to features section
-    featuresRef.current?.scrollIntoView({ 
+    featuresRef.current?.scrollIntoView({
       behavior: 'smooth',
       block: 'start'
     });
@@ -179,7 +205,7 @@ export default function HomePanel() {
         >
           <Cloud size={36} />
         </motion.div>
-        
+
         {/* Animated Grid Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
@@ -190,8 +216,8 @@ export default function HomePanel() {
       </div>
 
       {/* Decorative blobs with enhanced animations */}
-      <motion.div 
-        aria-hidden 
+      <motion.div
+        aria-hidden
         className="pointer-events-none absolute -left-40 top-20 h-96 w-96 rounded-full bg-purple-400 opacity-20 blur-3xl"
         animate={{
           scale: [1, 1.1, 1],
@@ -203,8 +229,8 @@ export default function HomePanel() {
           ease: "linear"
         }}
       />
-      <motion.div 
-        aria-hidden 
+      <motion.div
+        aria-hidden
         className="pointer-events-none absolute bottom-0 -right-40 h-[28rem] w-[28rem] rounded-full bg-blue-400 opacity-20 blur-3xl"
         animate={{
           scale: [1.1, 1, 1.1],
@@ -222,8 +248,8 @@ export default function HomePanel() {
         animate="show"
         variants={containerStagger}
         className="w-full max-w-4xl mx-auto px-4 py-8 md:py-16 text-center flex flex-col items-center justify-start min-h-full"
-        style={{ 
-          marginLeft: 'calc(50% - 200px)', 
+        style={{
+          marginLeft: 'calc(50% - 200px)',
           marginRight: 'auto',
           transform: 'translateX(-50%)'
         }}
@@ -251,7 +277,7 @@ export default function HomePanel() {
             </motion.span>
           </motion.div>
 
-          <motion.h1 
+          <motion.h1
             className="mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-4xl md:text-5xl lg:text-7xl font-extrabold leading-tight tracking-tight text-transparent"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -260,7 +286,7 @@ export default function HomePanel() {
             DocuGuide
           </motion.h1>
 
-          <motion.p 
+          <motion.p
             className="mx-auto mb-8 md:mb-10 max-w-2xl text-base md:text-lg lg:text-xl leading-relaxed text-theme-text-secondary px-4"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -272,13 +298,13 @@ export default function HomePanel() {
             )}
           </motion.p>
 
-          <motion.div 
+          <motion.div
             className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.9 }}
           >
-            <motion.button 
+            <motion.button
               onClick={handleGetStarted}
               className="w-full sm:w-auto flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 px-6 md:px-8 text-base md:text-lg font-semibold text-white shadow-lg shadow-purple-500/20 transition-all hover:scale-105 hover:shadow-xl"
               whileHover={{ scale: 1.05, y: -2 }}
@@ -288,7 +314,7 @@ export default function HomePanel() {
               <ArrowRight size={20} />
             </motion.button>
 
-            <motion.button 
+            <motion.button
               onClick={handleLearnMore}
               className="w-full sm:w-auto h-12 rounded-2xl border border-theme-border bg-transparent px-6 md:px-8 text-base md:text-lg font-semibold text-theme-text-primary hover:bg-theme-bg-secondary transition-colors"
               whileHover={{ scale: 1.05, y: -2 }}
@@ -305,15 +331,15 @@ export default function HomePanel() {
           className="mt-12 md:mt-20 grid w-full grid-cols-1 gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl"
         >
           {features.map((feature, idx) => (
-            <motion.div 
-              key={idx} 
-              variants={fadeInUp} 
+            <motion.div
+              key={idx}
+              variants={fadeInUp}
               whileHover={{ y: -8, scale: 1.02 }}
               className="group"
             >
               <div className="h-full rounded-2xl md:rounded-3xl border border-theme-border/40 bg-theme-bg-secondary/60 backdrop-blur-md transition-all hover:border-transparent hover:bg-white/90 dark:hover:bg-theme-bg-primary/80 hover:shadow-xl">
                 <div className="flex flex-col gap-3 md:gap-4 p-4 md:p-6">
-                  <motion.div 
+                  <motion.div
                     className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-theme-bg-primary group-hover:scale-110 transition-transform"
                     whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.6 }}
@@ -385,7 +411,7 @@ export default function HomePanel() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+        image.png        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
           {detailedFeatures.map((feature, idx) => (
             <motion.div
               key={idx}
@@ -447,6 +473,7 @@ export default function HomePanel() {
           </div>
         </motion.div>
       </section>
+      {showingNewWsModal && <NewWorkspaceModal hideModal={hideNewWsModal} />}
     </div>
   );
 }
@@ -461,7 +488,7 @@ function Stat({ number, label }) {
       className="rounded-xl md:rounded-2xl border border-theme-border/40 bg-theme-bg-secondary/60 p-4 md:p-6 backdrop-blur-md text-center"
       whileHover={{ scale: 1.05, y: -5 }}
     >
-      <motion.div 
+      <motion.div
         className="mb-2 text-2xl md:text-4xl font-bold text-blue-500"
         initial={{ scale: 0 }}
         whileInView={{ scale: 1 }}

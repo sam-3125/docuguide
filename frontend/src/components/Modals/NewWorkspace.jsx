@@ -4,12 +4,14 @@ import Workspace from "@/models/workspace";
 import paths from "@/utils/paths";
 import { useTranslation } from "react-i18next";
 import ModalWrapper from "@/components/ModalWrapper";
+import { useNavigate } from "react-router-dom";
 
 const noop = () => false;
 export default function NewWorkspaceModal({ hideModal = noop }) {
   const formEl = useRef(null);
   const [error, setError] = useState(null);
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const handleCreate = async (e) => {
     setError(null);
     e.preventDefault();
@@ -27,7 +29,8 @@ export default function NewWorkspaceModal({ hideModal = noop }) {
       return;
     }
     if (!!workspace) {
-      window.location.href = paths.workspace.chat(workspace.slug);
+      window.dispatchEvent(new Event("workspaceListShouldRefresh"));
+      navigate(paths.workspace.chat(workspace.slug));
     }
     setError(message);
   };

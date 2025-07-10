@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { UploadSimple, FilePdf, PresentationChart, Brain, MagnifyingGlass, FileText } from "@phosphor-icons/react";
+import { UploadSimple, FilePdf, PresentationChart, Brain, MagnifyingGlass, FileText, Microscope } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
+import DeepResearchPanel from "./DeepResearchPanel";
 
 export default function MiddlePanel() {
   const [activeTab, setActiveTab] = useState('documents');
@@ -466,6 +467,8 @@ export default function MiddlePanel() {
       
       default:
         return null;
+    case 'deep-research':
+      return <DeepResearchPanel />;
     }
   };
 
@@ -520,6 +523,18 @@ export default function MiddlePanel() {
           >
             <FileText size={16} />
             {t("patent.tab", "Patent")}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('deep-research')}
+            className={`flex items-center gap-2 px-4 py-3 font-medium rounded-full transition-all duration-300 ${
+              activeTab === 'deep-research'
+                ? 'text-white bg-gradient-to-r from-cyan-500 to-blue-600 shadow-md'
+                : 'text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-primary'
+            }`}
+          >
+            <Microscope size={16} />
+            Deep Research
           </button>
         </div>
       </div>

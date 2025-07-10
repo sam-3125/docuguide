@@ -56,6 +56,11 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
       setWorkspaces(Workspace.orderWorkspaces(workspaces));
     }
     getWorkspaces();
+
+    // Listen for workspace list refresh events
+    const refresh = () => getWorkspaces();
+    window.addEventListener("workspaceListShouldRefresh", refresh);
+    return () => window.removeEventListener("workspaceListShouldRefresh", refresh);
   }, [user]);
 
   if (loading) {
@@ -103,7 +108,7 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
           <div
             role="list"
             aria-label="Workspaces"
-            className={`flex flex-col ${isMinimized ? 'gap-y-1' : 'gap-y-2'}`}
+            className={`flex flex-col ${isMinimized ? 'gap-y-1' : 'gap-y-2'} overflow-y-scroll max-h-[300px] custom-scrollbar`}
             ref={provided.innerRef}
             {...provided.droppableProps}
           >
@@ -126,13 +131,12 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
                       role="listitem"
                     >
                       <div className="flex gap-x-2 items-center justify-between">
-                        <a
-                          href={
-                            isActive
-                              ? null
-                              : paths.workspace.chat(workspace.slug)
-                          }
+                        <button
+                          type="button"
                           aria-current={isActive ? "page" : ""}
+                          onClick={() => {
+                            if (!isActive) navigate(paths.workspace.chat(workspace.slug));
+                          }}
                           className={`
                             transition-all duration-[200ms]
                             flex ${isMinimized ? 'w-full h-[32px] justify-center' : 'flex-grow w-[75%] gap-x-2 py-[6px] pl-[4px] pr-[6px]'} rounded-[4px] text-white justify-start items-center
@@ -219,7 +223,7 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
                               </div>
                             )}
                           </div>
-                        </a>
+                        </button>
                       </div>
                       {isActive && !isMinimized && (
                         <ThreadContainer

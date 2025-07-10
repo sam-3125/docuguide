@@ -53,11 +53,13 @@ export default function QuickLinks() {
   };
 
   return (
-    <div>
+    <div
+      className="mt-12 sm:mt-16 md:mt-20 py-8 sm:py-12 md:py-16"
+    >
       <h1 className="text-theme-home-text uppercase text-sm font-semibold mb-4">
         {t("main-page.quickLinks.title")}
       </h1>
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
         <button
           onClick={sendChat}
           className="h-[45px] text-sm font-semibold bg-theme-home-button-secondary rounded-lg text-theme-home-button-secondary-text flex items-center justify-center gap-x-2.5 transition-all duration-200 hover:bg-theme-home-button-secondary-hover hover:text-theme-home-button-secondary-hover-text"

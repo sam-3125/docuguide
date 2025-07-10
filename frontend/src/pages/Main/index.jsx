@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import PasswordModal, { usePasswordModal } from "@/components/Modals/Password";
 import { FullScreenLoader } from "@/components/Preloader";
 import Home from "./Home";
@@ -15,10 +15,22 @@ export default function Main() {
     return <>{requiresAuth !== null && <PasswordModal mode={mode} />}</>;
 
   const user = userFromStorage();
+  const [showSidebar, setShowSidebar] = useState(true);
+
   return (
     <div className="w-screen h-screen overflow-hidden bg-theme-bg-container flex">
-      {!isMobile ? <Sidebar /> : <SidebarMobileHeader />}
-      {!!user && user?.role !== "admin" ? <DefaultChatContainer /> : <Home />}
+      {/* Sidebar */}
+      {!isMobile ? (
+        <Sidebar showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
+      ) : (
+        <SidebarMobileHeader />
+      )}
+      {/* Main content with dynamic left margin */}
+      <div
+        className={`transition-all duration-300 flex-1 h-full overflow-y-auto ${!isMobile ? (showSidebar ? 'ml-[260px]' : 'ml-[64px]') : ''}`}
+      >
+        {!!user && user?.role !== "admin" ? <DefaultChatContainer /> : <Home />}
+      </div>
     </div>
   );
 }
