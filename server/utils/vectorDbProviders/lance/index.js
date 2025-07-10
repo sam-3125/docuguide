@@ -76,7 +76,7 @@ const LanceDb = {
     query,
     queryVector,
     topN = 4,
-    similarityThreshold = 0.25,
+    similarityThreshold = 0.75,
     filterIdentifiers = [],
   }) {
     const reranker = new NativeEmbeddingReranker();
@@ -158,7 +158,7 @@ const LanceDb = {
     client,
     namespace,
     queryVector,
-    similarityThreshold = 0.25,
+    similarityThreshold = 0.75,
     topN = 4,
     filterIdentifiers = [],
   }) {
@@ -383,7 +383,7 @@ const LanceDb = {
     namespace = null,
     input = "",
     LLMConnector = null,
-    similarityThreshold = 0.25,
+    similarityThreshold = 0.75,
     topN = 4,
     filterIdentifiers = [],
     rerank = false,

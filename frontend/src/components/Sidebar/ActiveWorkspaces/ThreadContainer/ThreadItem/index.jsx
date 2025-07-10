@@ -9,7 +9,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 
 const THREAD_CALLOUT_DETAIL_WIDTH = 26;
 export default function ThreadItem({
@@ -87,23 +87,62 @@ export default function ThreadItem({
             )}
           </div>
         ) : (
-          <a
-            href={
-              window.location.pathname === linkTo || ctrlPressed ? "#" : linkTo
-            }
-            className="w-full pl-2 py-1 overflow-hidden"
-            aria-current={isActive ? "page" : ""}
-          >
-            <p
-              className={`text-left text-sm truncate max-w-[150px] ${
-                isActive ? "font-medium text-white" : "text-theme-text-primary"
-              }`}
+          window.location.pathname === linkTo || ctrlPressed || isActive ? (
+            <span className="w-full pl-2 py-1 overflow-hidden">
+              <p
+                className={`text-left text-sm truncate max-w-[150px] ${
+                  isActive ? "font-medium text-white" : "text-theme-text-primary"
+                }`}
+              >
+                {thread.name}
+              </p>
+            </span>
+          ) : (
+            <Link
+              to={linkTo}
+              className="w-full pl-2 py-1 overflow-hidden"
+              aria-current={isActive ? "page" : ""}
             >
-              {thread.name}
-            </p>
-          </a>
+              <p
+                className={`text-left text-sm truncate max-w-[150px] ${
+                  isActive ? "font-medium text-white" : "text-theme-text-primary"
+                }`}
+              >
+                {thread.name}
+              </p>
+            </Link>
+          )
         )}
         {!!thread.slug && !thread.deleted && (
+          <div ref={optionsContainer} className="flex items-center">
+            <div className="flex items-center w-fit group-hover:visible md:invisible gap-x-1">
+              <button
+                type="button"
+                className="border-none p-1 rounded hover:bg-slate-500/20"
+                onClick={() => renameThread(thread)}
+                aria-label="Rename thread"
+              >
+                <PencilSimple
+                  className="text-slate-300 light:text-theme-text-secondary hover:text-white hover:light:text-theme-text-primary"
+                  size={16}
+                />
+              </button>
+              <button
+                type="button"
+                className="border-none p-1 rounded hover:bg-red-500/20"
+                onClick={() => handleDelete(thread)}
+                aria-label="Delete thread"
+              >
+                <Trash
+                  className="text-slate-300 light:text-theme-text-secondary hover:text-red-400 hover:light:text-red-400"
+                  size={16}
+                />
+              </button>
+            </div>
+          </div>
+        )}
+        {/* Enable rename/delete for default thread as well */}
+        {!thread.slug && !thread.deleted && (
           <div ref={optionsContainer} className="flex items-center">
             <div className="flex items-center w-fit group-hover:visible md:invisible gap-x-1">
               <button
@@ -144,6 +183,16 @@ async function renameThread(thread) {
     return;
   }
 
+  if (!thread.slug) {
+    // Default thread: just update UI
+    window.dispatchEvent(
+      new CustomEvent("renameThread", {
+        detail: { threadSlug: thread.slug, newName: name },
+      })
+    );
+    return;
+  }
+
   const { message } = await Workspace.threads.update(
     workspace.slug,
     thread.slug,
@@ -156,7 +205,12 @@ async function renameThread(thread) {
     return;
   }
 
-  thread.name = name;
+  // Notify parent to update thread name in UI
+  window.dispatchEvent(
+    new CustomEvent("renameThread", {
+      detail: { threadSlug: thread.slug, newName: name },
+    })
+  );
 }
 
 async function handleDelete(thread) {
@@ -166,18 +220,20 @@ async function handleDelete(thread) {
     )
   )
     return;
+  if (!thread.slug) {
+    // Default thread: just remove from UI
+    onRemove && onRemove(thread.id);
+    return;
+  }
   const success = await Workspace.threads.delete(workspace.slug, thread.slug);
   if (!success) {
     showToast("Thread could not be deleted!", "error", { clear: true });
     return;
   }
-  if (success) {
-    showToast("Thread deleted successfully!", "success", { clear: true });
-    onRemove(thread.id);
-    // Redirect if deleting the active thread
-    if (currentThreadSlug === thread.slug) {
-      window.location.href = paths.workspace.chat(workspace.slug);
-    }
-    return;
+  showToast("Thread deleted successfully!", "success", { clear: true });
+  onRemove && onRemove(thread.id);
+  // Redirect if deleting the active thread
+  if (window.location.pathname.includes(thread.slug)) {
+    window.location.href = paths.workspace.chat(workspace.slug);
   }
 }

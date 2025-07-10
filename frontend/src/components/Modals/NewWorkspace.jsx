@@ -27,7 +27,12 @@ export default function NewWorkspaceModal({ hideModal = noop }) {
       return;
     }
     if (!!workspace) {
-      window.location.href = paths.workspace.chat(workspace.slug);
+      if (window.showToast) {
+        window.showToast("Workspace created successfully! Redirecting...", "success");
+      }
+      setTimeout(() => {
+        window.location.href = `/workspace/${workspace.slug}/chat`;
+      }, 1000);
     }
     setError(message);
   };

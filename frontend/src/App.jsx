@@ -101,16 +101,36 @@ function AutoWorkspaceRedirect() {
       let workspaces = await Workspace.all();
       if (!workspaces.length) {
         const { workspace } = await Workspace.new();
+        if (!workspace || !workspace.slug) {
+          navigate("/onboarding");
+          return;
+        }
         const { thread } = await Workspace.threads.new(workspace.slug);
+        if (!thread || !thread.slug) {
+          navigate("/onboarding");
+          return;
+        }
         navigate(`/workspace/${workspace.slug}/t/${thread.slug}`);
       } else {
         // Go to the first workspace's first thread
         const ws = workspaces[0];
+        if (!ws || !ws.slug) {
+          navigate("/onboarding");
+          return;
+        }
         const { threads } = await Workspace.threads.all(ws.slug);
-        if (threads.length) {
+        if (threads && threads.length) {
+          if (!threads[0] || !threads[0].slug) {
+            navigate("/onboarding");
+            return;
+          }
           navigate(`/workspace/${ws.slug}/t/${threads[0].slug}`);
         } else {
           const { thread } = await Workspace.threads.new(ws.slug);
+          if (!thread || !thread.slug) {
+            navigate("/onboarding");
+            return;
+          }
           navigate(`/workspace/${ws.slug}/t/${thread.slug}`);
         }
       }

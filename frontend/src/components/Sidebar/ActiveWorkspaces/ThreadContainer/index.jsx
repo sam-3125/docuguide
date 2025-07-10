@@ -129,8 +129,12 @@ export default function ThreadContainer({ workspace }) {
         idx={0}
         activeIdx={activeThreadIdx}
         isActive={activeThreadIdx === 0}
-        thread={{ slug: null, name: "default" }}
+        thread={{ slug: null, name: "default", id: "default" }}
         hasNext={threads.length > 0}
+        workspace={workspace}
+        onRemove={removeThread}
+        toggleMarkForDeletion={toggleForDeletion}
+        ctrlPressed={ctrlPressed}
       />
       {threads.map((thread, i) => (
         <ThreadItem

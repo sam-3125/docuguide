@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from "react";
+import React, { createContext, useContext, useState, memo, useEffect } from "react";
 import { X } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
@@ -11,6 +11,37 @@ import DataConnectors from "./DataConnectors";
 import ModalWrapper from "@/components/ModalWrapper";
 
 const noop = () => {};
+const ManageWorkspaceContext = createContext();
+
+export function ManageWorkspaceProvider({ children }) {
+  const [showing, setShowing] = useState(false);
+  const [slug, setSlug] = useState(null);
+
+  const showModal = (providedSlug = null) => {
+    setSlug(providedSlug);
+    setShowing(true);
+  };
+
+  const hideModal = () => {
+    setShowing(false);
+    setSlug(null);
+  };
+
+  return (
+    <ManageWorkspaceContext.Provider value={{ showing, showModal, hideModal, slug }}>
+      {children}
+      {showing && (
+        <ManageWorkspace
+          hideModal={hideModal}
+          providedSlug={slug}
+        />
+      )}
+    </ManageWorkspaceContext.Provider>
+  );
+}
+
+export const useManageWorkspaceModal = () => useContext(ManageWorkspaceContext);
+
 const ManageWorkspace = ({ hideModal = noop, providedSlug = null }) => {
   const { t } = useTranslation();
   const { slug } = useParams();
@@ -143,30 +174,3 @@ const ModalTabSwitcher = ({ selectedTab, setSelectedTab }) => {
     </div>
   );
 };
-
-export function useManageWorkspaceModal() {
-  const { user } = useUser();
-  const [showing, setShowing] = useState(false);
-
-  function showModal() {
-    setShowing(true);
-  }
-
-  function hideModal() {
-    setShowing(false);
-  }
-
-  useEffect(() => {
-    function onEscape(event) {
-      if (!showing || event.key !== "Escape") return;
-      setShowing(false);
-    }
-
-    document.addEventListener("keydown", onEscape);
-    return () => {
-      document.removeEventListener("keydown", onEscape);
-    };
-  }, [showing]);
-
-  return { showing, showModal, hideModal };
-}

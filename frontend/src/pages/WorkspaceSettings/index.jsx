@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
+import { useSidebarToggle } from "@/components/Sidebar/SidebarToggle";
 import Workspace from "@/models/workspace";
 import PasswordModal, { usePasswordModal } from "@/components/Modals/Password";
 import { isMobile } from "react-device-detect";
@@ -14,7 +15,7 @@ import {
   Wrench,
 } from "@phosphor-icons/react";
 import paths from "@/utils/paths";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { NavLink } from "react-router-dom";
 import GeneralAppearance from "./GeneralAppearance";
 import ChatSettings from "./ChatSettings";
@@ -35,21 +36,38 @@ const TABS = {
 
 export default function WorkspaceSettings() {
   const { loading, requiresAuth, mode } = usePasswordModal();
+  const { showSidebar } = useSidebarToggle();
 
   if (loading) return <FullScreenLoader />;
   if (requiresAuth !== false) {
     return <>{requiresAuth !== null && <PasswordModal mode={mode} />}</>;
   }
 
-  return <ShowWorkspaceChat />;
+  return <ShowWorkspaceChat showSidebar={showSidebar} />;
 }
 
-function ShowWorkspaceChat() {
+// Reusable BackButton component
+function BackButton({ to, className = "" }) {
+  return (
+    <Link
+      to={to}
+      className={
+        "absolute top-2 left-2 md:top-4 md:left-4 transition-all duration-300 p-2 rounded-full text-white bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover z-10 " +
+        className
+      }
+    >
+      <ArrowUUpLeft className="h-5 w-5" weight="fill" />
+    </Link>
+  );
+}
+
+function ShowWorkspaceChat({ showSidebar }) {
   const { t } = useTranslation();
   const { slug, tab } = useParams();
   const { user } = useUser();
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     async function getWorkspace() {
@@ -79,16 +97,16 @@ function ShowWorkspaceChat() {
     <div className="w-screen h-screen overflow-hidden bg-theme-bg-container flex">
       {!isMobile && <Sidebar />}
       <div
-        style={{ height: isMobile ? "100%" : "calc(100% - 32px)" }}
-        className="transition-all duration-500 relative md:ml-[2px] md:mr-[16px] md:my-[16px] md:rounded-[16px] bg-theme-bg-secondary w-full h-full overflow-y-scroll"
+        style={{
+          height: isMobile ? "100%" : "calc(100% - 32px)",
+          marginLeft: !isMobile ? (showSidebar ? 260 : 64) : 0,
+          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        className="transition-all duration-500 relative md:mr-[16px] md:my-[16px] md:rounded-[16px] bg-theme-bg-secondary w-full h-full overflow-y-scroll"
       >
+        {/* Back button at the top left */}
+        <BackButton to={paths.workspace.chat(slug)} />
         <div className="flex gap-x-10 pt-6 pb-4 ml-16 mr-8 border-b-2 border-white light:border-theme-chat-input-border border-opacity-10">
-          <Link
-            to={paths.workspace.chat(slug)}
-            className="absolute top-2 left-2 md:top-4 md:left-4 transition-all duration-300 p-2 rounded-full text-white bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover z-10"
-          >
-            <ArrowUUpLeft className="h-5 w-5" weight="fill" />
-          </Link>
           <TabItem
             title={t("workspaces—settings.general")}
             icon={<Wrench className="h-6 w-6" />}

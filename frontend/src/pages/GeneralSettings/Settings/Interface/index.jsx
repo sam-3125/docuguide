@@ -4,6 +4,24 @@ import { useTranslation } from "react-i18next";
 import LanguagePreference from "../components/LanguagePreference";
 import ThemePreference from "../components/ThemePreference";
 import { MessageDirection } from "../components/MessageDirection";
+import { Link } from "react-router-dom";
+import { ArrowUUpLeft } from "@phosphor-icons/react";
+
+// Floating BackButton component
+function BackButton({ to, className = "" }) {
+  return (
+    <Link
+      to={to}
+      className={
+        "fixed top-6 z-50 rounded-full text-white bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover transition-all duration-300 shadow-lg flex items-center justify-center " +
+        className
+      }
+      style={{ boxShadow: "0 4px 24px 0 rgba(0,0,0,0.12)", width: 56, height: 56 }}
+    >
+      <ArrowUUpLeft className="h-8 w-8" weight="fill" />
+    </Link>
+  );
+}
 
 export default function InterfaceSettings() {
   const { t } = useTranslation();
@@ -15,6 +33,8 @@ export default function InterfaceSettings() {
         style={{ height: isMobile ? "100%" : "calc(100% - 32px)" }}
         className="relative md:ml-[2px] md:mr-[16px] md:my-[16px] md:rounded-[16px] bg-theme-bg-secondary w-full h-full overflow-y-scroll p-4 md:p-0"
       >
+        {/* Floating Back Button */}
+        <BackButton to="/" className="right-16 left-auto p-4" />
         <div className="flex flex-col w-full px-1 md:pl-6 md:pr-[86px] md:py-6 py-16">
           <div className="w-full flex flex-col gap-y-1 pb-6 border-white light:border-theme-sidebar-border border-b-2 border-opacity-10">
             <div className="items-center">

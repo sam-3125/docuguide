@@ -40,11 +40,10 @@ export default function CreateWorkspace({
     });
     if (!!workspace) {
       showToast(
-        "Workspace created successfully! Taking you to home...",
+        "Workspace created successfully!",
         "success"
       );
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      navigate(paths.home());
+      // Removed redirect to home page
     } else {
       showToast(`Failed to create workspace: ${error}`, "error");
     }

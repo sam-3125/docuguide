@@ -29,6 +29,11 @@ export default function ChatContainer({ workspace, knownHistory = [] }) {
   const [websocket, setWebsocket] = useState(null);
   const { files, parseAttachments } = useContext(DndUploaderContext);
 
+  // Update chatHistory when knownHistory changes (e.g., when switching threads)
+  useEffect(() => {
+    setChatHistory(knownHistory);
+  }, [knownHistory]);
+
   // Maintain state of message from whatever is in PromptInput
   const handleMessageChange = (event) => {
     setMessage(event.target.value);

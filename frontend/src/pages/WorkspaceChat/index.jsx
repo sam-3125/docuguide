@@ -10,6 +10,7 @@ import { isMobile } from "react-device-detect";
 import { FullScreenLoader } from "@/components/Preloader";
 import { ArrowsIn, ArrowsOut } from "@phosphor-icons/react";
 import UserButton from "@/components/UserMenu/UserButton";
+import { ManageWorkspaceProvider } from "@/components/Modals/ManageWorkspace";
 
 // Layout modes
 const LAYOUT_MODES = {
@@ -26,7 +27,11 @@ export default function WorkspaceChat() {
     return <>{requiresAuth !== null && <PasswordModal mode={mode} />}</>;
   }
 
-  return <ShowWorkspaceChat />;
+  return (
+    <ManageWorkspaceProvider>
+      <ShowWorkspaceChat />
+    </ManageWorkspaceProvider>
+  );
 }
 
 function ShowWorkspaceChat() {
@@ -56,7 +61,7 @@ function ShowWorkspaceChat() {
       setLoading(false);
     }
     getWorkspace();
-  }, []);
+  }, [slug]);
 
   const getLayoutClasses = () => {
     switch (layoutMode) {
@@ -97,11 +102,11 @@ function ShowWorkspaceChat() {
 
   const handleMouseMove = (e) => {
     if (!isResizing) return;
-    
+
     const newWidth = window.innerWidth - e.clientX;
     const minWidth = window.innerWidth * 0.35;
     const maxWidth = window.innerWidth * 0.75;
-    
+
     if (newWidth >= minWidth && newWidth <= maxWidth) {
       setChatWidth(newWidth);
     }
@@ -117,7 +122,7 @@ function ShowWorkspaceChat() {
       document.addEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
-      
+
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
@@ -139,7 +144,7 @@ function ShowWorkspaceChat() {
     <>
       <div className="w-screen h-screen overflow-hidden bg-theme-bg-container flex items-stretch">
         {/* Sidebar */}
-        <div 
+        <div
           style={{
             width: layoutMode === LAYOUT_MODES.MINIMIZED ? '80px' : layoutMode === LAYOUT_MODES.DEFAULT ? '320px' : '320px',
             minWidth: layoutMode === LAYOUT_MODES.MINIMIZED ? '80px' : layoutMode === LAYOUT_MODES.DEFAULT ? '280px' : '280px',
@@ -149,8 +154,8 @@ function ShowWorkspaceChat() {
           className="flex-shrink-0 h-full"
         >
           {!isMobile && (
-            <Sidebar 
-              layoutMode={layoutMode} 
+            <Sidebar
+              layoutMode={layoutMode}
               onLayoutModeChange={setLayoutMode}
               activeSection={activeSection}
               onActiveSectionChange={setActiveSection}
@@ -159,21 +164,17 @@ function ShowWorkspaceChat() {
         </div>
 
         {/* Main Content Area */}
-        <div 
-          style={{
-            width: activeSection === 'home' ? '100%' : (layoutMode === LAYOUT_MODES.FULLSCREEN ? '0px' : 'auto'),
-            minWidth: activeSection === 'home' ? '100%' : (layoutMode === LAYOUT_MODES.FULLSCREEN ? '0px' : '200px')
-          }}
-          className={`${activeSection === 'home' ? 'flex-1' : (layoutMode === LAYOUT_MODES.FULLSCREEN ? 'hidden' : 'flex-1')} h-full`}
+        <div
+          className={`${activeSection === 'home' ? 'flex-1 h-full overflow-y-auto' : (layoutMode === LAYOUT_MODES.FULLSCREEN ? 'hidden' : 'flex-1 h-full')}`}
         >
           {activeSection === 'home' && <HomePanel key={`home-${Date.now()}`} />}
-          {activeSection === 'chat' && <MiddlePanel />}
-          {activeSection === 'workspace' && <MiddlePanel />}
+          {activeSection === 'chat' && <MiddlePanel workspace={workspace} />}
+          {activeSection === 'workspace' && <MiddlePanel workspace={workspace} />}
         </div>
 
         {/* Chat Container - Only show when not on home page */}
         {activeSection !== 'home' && (
-          <div 
+          <div
             style={{
               width: getChatWidth(),
               minWidth: layoutMode === LAYOUT_MODES.FULLSCREEN ? 'auto' : `${window.innerWidth * 0.25}px`,
@@ -184,7 +185,7 @@ function ShowWorkspaceChat() {
             <div className="h-full p-4">
               <WorkspaceChatContainer loading={loading} workspace={workspace} />
             </div>
-            
+
             {/* Layout Controls */}
             <div className="absolute top-4 right-4 flex gap-2 z-10">
               {/* Expand/Collapse Chat */}
@@ -214,7 +215,7 @@ function ShowWorkspaceChat() {
           </div>
         )}
       </div>
-      
+
       {/* User Button - Only show when chat is expanded */}
       {layoutMode === LAYOUT_MODES.FULLSCREEN && !isMobile && (
         <div className="absolute top-3 right-4 md:top-9 md:right-10 w-fit h-fit z-40">

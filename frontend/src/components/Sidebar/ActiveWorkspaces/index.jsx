@@ -2,9 +2,7 @@ import React, { useState, useEffect } from "react";
 import * as Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import Workspace from "@/models/workspace";
-import ManageWorkspace, {
-  useManageWorkspaceModal,
-} from "../../Modals/ManageWorkspace";
+import { useManageWorkspaceModal } from "../../Modals/ManageWorkspace";
 import paths from "@/utils/paths";
 import { useParams, useNavigate } from "react-router-dom";
 import { GearSix, UploadSimple, DotsSixVertical } from "@phosphor-icons/react";
@@ -19,8 +17,7 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
   const { slug } = useParams();
   const [loading, setLoading] = useState(true);
   const [workspaces, setWorkspaces] = useState([]);
-  const [selectedWs, setSelectedWs] = useState(null);
-  const { showing, showModal, hideModal } = useManageWorkspaceModal();
+  const { showModal } = useManageWorkspaceModal();
   const { user } = useUser();
   const isInWorkspaceSettings = !!useMatch("/workspace/:slug/settings/:tab");
 
@@ -56,6 +53,14 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
       setWorkspaces(Workspace.orderWorkspaces(workspaces));
     }
     getWorkspaces();
+
+    function handleWorkspaceListUpdate() {
+      getWorkspaces();
+    }
+    window.addEventListener("workspaceListUpdated", handleWorkspaceListUpdate);
+    return () => {
+      window.removeEventListener("workspaceListUpdated", handleWorkspaceListUpdate);
+    };
   }, [user]);
 
   if (loading) {
@@ -126,20 +131,20 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
                       role="listitem"
                     >
                       <div className="flex gap-x-2 items-center justify-between">
-                        <a
-                          href={
-                            isActive
-                              ? null
-                              : paths.workspace.chat(workspace.slug)
+                        {/* Use button for workspace selection instead of <a href> */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isActive) {
+                              navigate(paths.workspace.chat(workspace.slug));
+                            }
+                            // If already active, just toggle threads (handled by parent)
+                          }}
+                          aria-current={isActive ? "page" : undefined}
+                          className={
+                            `transition-all duration-[200ms] flex ${isMinimized ? 'w-full h-[32px] justify-center' : 'flex-grow w-[75%] gap-x-2 py-[6px] pl-[4px] pr-[6px]'} rounded-[4px] text-white justify-start items-center bg-theme-sidebar-item-default hover:bg-theme-sidebar-subitem-hover hover:font-bold ` +
+                            (isActive ? "bg-theme-sidebar-item-selected font-bold light:outline-2 light:outline light:outline-blue-400 light:outline-offset-[-2px]" : "")
                           }
-                          aria-current={isActive ? "page" : ""}
-                          className={`
-                            transition-all duration-[200ms]
-                            flex ${isMinimized ? 'w-full h-[32px] justify-center' : 'flex-grow w-[75%] gap-x-2 py-[6px] pl-[4px] pr-[6px]'} rounded-[4px] text-white justify-start items-center
-                            bg-theme-sidebar-item-default
-                            hover:bg-theme-sidebar-subitem-hover hover:font-bold
-                            ${isActive ? "bg-theme-sidebar-item-selected font-bold light:outline-2 light:outline light:outline-blue-400 light:outline-offset-[-2px]" : ""}
-                          `}
                         >
                           <div className="flex flex-row justify-between w-full items-center">
                             {user?.role !== "default" && !isMinimized && (
@@ -158,11 +163,11 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
                               {!isMinimized && (
                                 <div className="flex-1 min-w-0 overflow-hidden">
                                   <p
-                                    className={`
-                                    text-[14px] leading-loose whitespace-nowrap overflow-hidden text-white
-                                    ${isActive ? "font-bold" : "font-medium"} truncate
-                                    w-full group-hover:font-bold group-hover:duration-200
-                                  `}
+                                    className={
+                                      `text-[14px] leading-loose whitespace-nowrap overflow-hidden text-white ` +
+                                      (isActive ? "font-bold" : "font-medium") +
+                                      " truncate w-full group-hover:font-bold group-hover:duration-200"
+                                    }
                                   >
                                     {workspace.name}
                                   </p>
@@ -184,8 +189,7 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
                                   type="button"
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    setSelectedWs(workspace);
-                                    showModal();
+                                    showModal(workspace.slug);
                                   }}
                                   className="border-none rounded-md flex items-center justify-center ml-auto p-[2px] hover:bg-[#646768] text-[#A7A8A9] hover:text-white"
                                 >
@@ -219,7 +223,7 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
                               </div>
                             )}
                           </div>
-                        </a>
+                        </button>
                       </div>
                       {isActive && !isMinimized && (
                         <ThreadContainer
@@ -233,12 +237,6 @@ export default function ActiveWorkspaces({ isMinimized = false }) {
               );
             })}
             {provided.placeholder}
-            {showing && (
-              <ManageWorkspace
-                hideModal={hideModal}
-                providedSlug={selectedWs ? selectedWs.slug : null}
-              />
-            )}
           </div>
         )}
       </Droppable>

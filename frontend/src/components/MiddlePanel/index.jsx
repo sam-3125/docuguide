@@ -1,12 +1,18 @@
 import React, { useState } from "react";
 import { UploadSimple, FilePdf, PresentationChart, Brain, MagnifyingGlass, FileText } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
+import { useManageWorkspaceModal } from "@/components/Modals/ManageWorkspace";
 
-export default function MiddlePanel() {
+export default function MiddlePanel({ workspace }) {
   const [activeTab, setActiveTab] = useState('documents');
   const [visualizationSubTab, setVisualizationSubTab] = useState('ppt');
   const [patentSubTab, setPatentSubTab] = useState('search');
   const { t } = useTranslation();
+  const { showModal } = useManageWorkspaceModal();
+
+  const handleUploadClick = () => {
+    showModal(workspace?.slug);
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -31,7 +37,14 @@ export default function MiddlePanel() {
               {/* Enhanced Upload Component */}
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
-                <div className="relative border-2 border-dashed border-theme-border rounded-2xl p-12 bg-gradient-to-br from-theme-bg-secondary to-theme-bg-primary hover:from-theme-bg-primary hover:to-theme-bg-secondary transition-all duration-300 cursor-pointer group-hover:shadow-2xl group-hover:scale-105 transform">
+                <div
+                  className="relative border-2 border-dashed border-theme-border rounded-2xl p-12 bg-gradient-to-br from-theme-bg-secondary to-theme-bg-primary hover:from-theme-bg-primary hover:to-theme-bg-secondary transition-all duration-300 cursor-pointer group-hover:shadow-2xl group-hover:scale-105 transform"
+                  onClick={handleUploadClick}
+                  role="button"
+                  tabIndex={0}
+                  onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') handleUploadClick(); }}
+                  aria-label="Upload Documents"
+                >
                   <div className="flex flex-col items-center">
                     <div className="relative mb-6">
                       <UploadSimple 

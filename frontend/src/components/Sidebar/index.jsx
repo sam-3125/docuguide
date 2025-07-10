@@ -37,315 +37,174 @@ export default function Sidebar({ layoutMode = 'default', onLayoutModeChange, ac
     onLayoutModeChange?.(newMode);
   };
 
+  // Collapse workspace/threads if sidebar is closed
+  React.useEffect(() => {
+    if (!showSidebar && workspaceExpanded) {
+      setWorkspaceExpanded(false);
+    }
+  }, [showSidebar, workspaceExpanded]);
+
   return (
     <>
+      {/* Sidebar main container */}
       <div
+        className="fixed top-0 left-0 h-full z-50 transition-all duration-300 bg-theme-bg-sidebar border-r border-theme-sidebar-border flex flex-col"
         style={{
-          width: isMinimized ? '80px' : '100%',
-          minWidth: isMinimized ? '80px' : 'auto',
-          maxWidth: isMinimized ? '80px' : 'none',
-          transition: 'all 0.3s ease'
+          width: showSidebar ? '260px' : '64px',
+          minWidth: showSidebar ? '260px' : '64px',
+          maxWidth: showSidebar ? '260px' : '64px',
         }}
-        className="h-full"
       >
-        {!isMinimized && (
-          <div className="flex shrink-0 w-full justify-center my-[18px] px-4">
-            <div 
-              style={{
-                width: '250px',
-                minWidth: '250px'
-              }}
-              className="flex justify-between"
-            >
-              <Link to={paths.home()} aria-label="Home">
-                <img
-                  src={logo}
-                  alt="Logo"
-                  className="rounded max-h-[24px] object-contain transition-opacity duration-500 opacity-100"
-                />
-              </Link>
-              {canToggleSidebar && (
-                <ToggleSidebarButton
-                  showSidebar={showSidebar}
-                  setShowSidebar={setShowSidebar}
-                />
-              )}
-            </div>
+        {/* Logo at the top, only when expanded */}
+        {showSidebar && (
+          <div className="flex items-center px-4 pt-4 pb-2">
+            <img
+              src={logo}
+              alt="Logo"
+              className="rounded max-h-[32px] object-contain transition-opacity duration-500 opacity-100"
+            />
           </div>
         )}
-        
-        {/* Minimized controls - only show when minimized */}
-        {isMinimized && (
-          <div className="flex justify-center my-[18px] px-2">
+        {/* Toggle button at the top left inside the sidebar */}
+        <div
+          className="flex items-center justify-start px-2 pb-2"
+          style={{ marginTop: !showSidebar ? 32 : 0 }}
+        >
+          {canToggleSidebar && (
             <button
-              onClick={toggleMinimize}
-              className="p-2 rounded transition-colors duration-200 hover:bg-theme-bg-primary"
-              title="Expand Sidebar"
+              onClick={() => setShowSidebar((prev) => !prev)}
+              className="bg-theme-bg-sidebar border border-theme-sidebar-border rounded-md p-2 hover:bg-theme-sidebar-item-hover transition-all"
+              title={showSidebar ? 'Collapse Sidebar' : 'Expand Sidebar'}
             >
-              <SidebarSimple 
-                size={20} 
-                className="text-theme-text-primary"
+              <SidebarSimple
+                size={24}
                 weight="fill"
+                className={`transition-transform duration-300 text-theme-text-primary ${showSidebar ? 'rotate-180' : ''}`}
               />
             </button>
-          </div>
-        )}
-        {!isMinimized && (
-          <div
-            ref={sidebarRef}
-            style={{
-              width: 'auto',
-              minWidth: '280px',
-              maxWidth: '350px'
-            }}
-            className="relative m-[16px] rounded-[16px] bg-theme-bg-sidebar border-[2px] border-theme-sidebar-border light:border-none p-[10px] h-[calc(100%-76px)]"
+          )}
+        </div>
+        {/* Navigation section */}
+        <nav className="flex-1 flex flex-col gap-y-1 mt-2">
+          <button
+            onClick={() => onActiveSectionChange('home')}
+            className={`flex items-center ${showSidebar ? 'gap-x-3 justify-start px-4' : 'justify-center'} py-2 rounded-md transition-all duration-200 ${
+              activeSection === 'home'
+                ? 'bg-theme-sidebar-item-selected text-white'
+                : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
+            }`}
           >
-            <div className="flex flex-col h-full overflow-x-hidden">
-              <div 
-                style={{
-                  minWidth: '260px'
-                }}
-                className="flex-grow flex flex-col"
-              >
-                <div className="relative h-[calc(100%-60px)] flex flex-col w-full justify-between pt-[10px] overflow-y-scroll no-scroll">
-                  <div className="flex flex-col gap-y-2 pb-[60px] overflow-y-scroll no-scroll">
-                    {/* Navigation Sections */}
-                    <div className="flex flex-col gap-y-1 mb-4">
-                      {/* Home Section */}
-                      <button
-                        onClick={() => onActiveSectionChange('home')}
-                        className={`flex items-center gap-x-3 py-[8px] px-[12px] rounded-[6px] transition-all duration-200 ${
-                          activeSection === 'home'
-                            ? 'bg-theme-sidebar-item-selected text-white'
-                            : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
-                        }`}
-                      >
-                        <House size={20} weight={activeSection === 'home' ? 'fill' : 'regular'} />
-                        {!isMinimized && (
-                          <span className="text-sm font-medium">Home</span>
-                        )}
-                      </button>
-
-                      {/* Chat Section */}
-                      <button
-                        onClick={() => onActiveSectionChange('chat')}
-                        className={`flex items-center gap-x-3 py-[8px] px-[12px] rounded-[6px] transition-all duration-200 ${
-                          activeSection === 'chat'
-                            ? 'bg-theme-sidebar-item-selected text-white'
-                            : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
-                        }`}
-                      >
-                        <ChatCircle size={20} weight={activeSection === 'chat' ? 'fill' : 'regular'} />
-                        {!isMinimized && (
-                          <span className="text-sm font-medium">Chat</span>
-                        )}
-                      </button>
-
-                      {/* Workspace Section */}
-                      <div className="flex flex-col">
-                        <button
-                          onClick={() => {
-                            if (activeSection === 'workspace') {
-                              setWorkspaceExpanded(!workspaceExpanded);
-                            } else {
-                              onActiveSectionChange('workspace');
-                              setWorkspaceExpanded(true);
-                            }
-                          }}
-                          className={`flex items-center gap-x-3 py-[8px] px-[12px] rounded-[6px] transition-all duration-200 ${
-                            activeSection === 'workspace'
-                              ? 'bg-theme-sidebar-item-selected text-white'
-                              : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
-                          }`}
-                        >
-                          <Folder 
-                            size={20} 
-                            weight={activeSection === 'workspace' ? 'fill' : 'regular'} 
-                            className={`transition-transform duration-300 ${workspaceExpanded ? 'rotate-90' : ''}`}
-                          />
-                          {!isMinimized && (
-                            <span className="text-sm font-medium">Workspace</span>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Workspace Content - Only show when workspace section is active and expanded */}
-                    {activeSection === 'workspace' && workspaceExpanded && (
-                      <div className={`overflow-hidden transition-all duration-300 ${workspaceExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                        <div className="flex gap-x-2 items-center justify-between">
-                          {user && (
-                            <button
-                              onClick={showNewWsModal}
-                              className="light:bg-[#C2E7FE] light:hover:bg-[#7CD4FD] flex flex-grow w-[75%] h-[44px] gap-x-2 py-[5px] px-2.5 mb-2 bg-white rounded-[8px] text-sidebar justify-center items-center hover:bg-opacity-80 transition-all duration-300"
-                            >
-                              <Plus size={18} weight="bold" />
-                              <p className="text-sidebar text-sm font-semibold">
-                                {t("new-workspace.title")}
-                              </p>
-                            </button>
-                          )}
-                        </div>
-                        <ActiveWorkspaces isMinimized={false} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Footer for normal mode */}
-                <div className="absolute bottom-0 left-0 right-0 pt-4 pb-3 px-3 rounded-b-[16px] bg-theme-bg-sidebar bg-opacity-80 backdrop-filter backdrop-blur-md z-1">
-                  <div className="flex items-center justify-between gap-x-2">
-                    <div className="flex items-center gap-x-2">
-                      <UserDisplay />
-                      <span className="text-white text-sm truncate max-w-[80px]">{user.username}</span>
-                    </div>
-                    <div className="flex items-center gap-x-2">
-                      <SettingsButton />
-                      <button
-                        onClick={() => {
-                          window.localStorage.removeItem(AUTH_USER);
-                          window.localStorage.removeItem(AUTH_TOKEN);
-                          window.localStorage.removeItem(AUTH_TIMESTAMP);
-                          window.location.replace(paths.home());
-                        }}
-                        className="transition-all duration-300 p-2 rounded-full bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover"
-                        aria-label="Sign out"
-                      >
-                        <SignOut
-                          className="h-5 w-5"
-                          weight="fill"
-                          color="var(--theme-sidebar-footer-icon-fill)"
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+            <House size={22} weight={activeSection === 'home' ? 'fill' : 'regular'} />
+            {showSidebar && <span className="text-base font-medium">Home</span>}
+          </button>
+          <button
+            onClick={() => onActiveSectionChange('chat')}
+            className={`flex items-center ${showSidebar ? 'gap-x-3 justify-start px-4' : 'justify-center'} py-2 rounded-md transition-all duration-200 ${
+              activeSection === 'chat'
+                ? 'bg-theme-sidebar-item-selected text-white'
+                : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
+            }`}
+          >
+            <ChatCircle size={22} weight={activeSection === 'chat' ? 'fill' : 'regular'} />
+            {showSidebar && <span className="text-base font-medium">Chat</span>}
+          </button>
+          <button
+            onClick={() => {
+              if (!showSidebar) {
+                setShowSidebar(true);
+                onActiveSectionChange('workspace');
+                setWorkspaceExpanded(true);
+              } else if (activeSection === 'workspace') {
+                setWorkspaceExpanded(!workspaceExpanded);
+              } else {
+                onActiveSectionChange('workspace');
+                setWorkspaceExpanded(true);
+              }
+            }}
+            className={`flex items-center ${showSidebar ? 'gap-x-3 justify-start px-4' : 'justify-center'} py-2 rounded-md transition-all duration-200 ${
+              activeSection === 'workspace'
+                ? 'bg-theme-sidebar-item-selected text-white'
+                : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
+            }`}
+          >
+            <Folder size={22} weight={activeSection === 'workspace' ? 'fill' : 'regular'} className={`transition-transform duration-300 ${workspaceExpanded ? 'rotate-90' : ''}`} />
+            {showSidebar && <span className="text-base font-medium">Workspace</span>}
+          </button>
+          {/* New Workspace button - only show when expanded and workspace section is active */}
+          {showSidebar && activeSection === 'workspace' && workspaceExpanded && (
+            <button
+              onClick={showNewWsModal}
+              className="flex items-center gap-x-3 justify-start px-4 py-2 rounded-md bg-theme-bg-sidebar border border-theme-sidebar-border hover:bg-theme-sidebar-item-hover transition-all text-theme-text-primary w-full"
+              style={{ minHeight: 40 }}
+            >
+              <Plus size={18} weight="bold" />
+              <span className="text-base font-medium">New Workspace</span>
+            </button>
+          )}
+          {/* Workspace Content - Only show when workspace section is active and expanded, and directly below the Workspace button */}
+          {showSidebar && activeSection === 'workspace' && workspaceExpanded && (
+            <div className={`overflow-hidden transition-all duration-300 ${workspaceExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} ml-2 mr-2 mb-2`}> 
+              <div style={{ overflowY: 'auto', maxHeight: '300px', background: 'rgba(30, 41, 59, 0.12)', borderRadius: '8px', padding: '8px', marginTop: '8px' }}>
+                <ActiveWorkspaces isMinimized={false} />
+              </div>
+            </div>
+          )}
+        </nav>
+        {/* Footer: user info, settings, logout - layout depends on sidebar state */}
+        {showSidebar ? (
+          <div className="absolute bottom-0 left-0 right-0 pt-4 pb-3 px-3 rounded-b-[16px] bg-theme-bg-sidebar bg-opacity-80 backdrop-filter backdrop-blur-md z-1">
+            <div className="flex items-center justify-between gap-x-2">
+              <div className="flex items-center gap-x-2">
+                <UserDisplay />
+                <span className="text-white text-sm truncate max-w-[80px]">{user?.username || "Guest"}</span>
+              </div>
+              <div className="flex items-center gap-x-2">
+                <SettingsButton />
+                <button
+                  onClick={() => {
+                    window.localStorage.removeItem(AUTH_USER);
+                    window.localStorage.removeItem(AUTH_TOKEN);
+                    window.localStorage.removeItem(AUTH_TIMESTAMP);
+                    window.location.replace(paths.home());
+                  }}
+                  className="transition-all duration-300 p-2 rounded-full bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover"
+                  aria-label="Sign out"
+                >
+                  <SignOut
+                    className="h-5 w-5"
+                    weight="fill"
+                    color="var(--theme-sidebar-footer-icon-fill)"
+                  />
+                </button>
               </div>
             </div>
           </div>
-        )}
-        
-        {/* Minimized sidebar content */}
-        {isMinimized && (
-          <div
-            style={{
-              width: '64px',
-              minWidth: '64px',
-              maxWidth: '64px'
-            }}
-            className="relative m-[8px] rounded-[16px] bg-theme-bg-sidebar border-[2px] border-theme-sidebar-border light:border-none p-[4px] h-[calc(100%-76px)]"
-          >
-            <div className="flex flex-col h-full overflow-x-hidden">
-              <div 
-                style={{
-                  width: '56px',
-                  minWidth: '56px',
-                  maxWidth: '56px'
-                }}
-                className="flex-grow flex flex-col"
-              >
-                <div className="relative h-[calc(100%-60px)] flex flex-col w-full justify-between pt-[10px] overflow-y-scroll no-scroll">
-                  <div className="flex flex-col gap-y-2 pb-[60px] overflow-y-scroll no-scroll">
-                    {/* Navigation Sections - Minimized */}
-                    <div className="flex flex-col gap-y-1 mb-4">
-                      {/* Home Section */}
-                      <button
-                        onClick={() => onActiveSectionChange('home')}
-                        className={`flex items-center justify-center py-[8px] px-[12px] rounded-[6px] transition-all duration-200 ${
-                          activeSection === 'home'
-                            ? 'bg-theme-sidebar-item-selected text-white'
-                            : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
-                        }`}
-                      >
-                        <House size={20} weight={activeSection === 'home' ? 'fill' : 'regular'} />
-                      </button>
-
-                      {/* Chat Section */}
-                      <button
-                        onClick={() => onActiveSectionChange('chat')}
-                        className={`flex items-center justify-center py-[8px] px-[12px] rounded-[6px] transition-all duration-200 ${
-                          activeSection === 'chat'
-                            ? 'bg-theme-sidebar-item-selected text-white'
-                            : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
-                        }`}
-                      >
-                        <ChatCircle size={20} weight={activeSection === 'chat' ? 'fill' : 'regular'} />
-                      </button>
-
-                      {/* Workspace Section */}
-                      <button
-                        onClick={() => {
-                          if (activeSection === 'workspace') {
-                            setWorkspaceExpanded(!workspaceExpanded);
-                          } else {
-                            onActiveSectionChange('workspace');
-                            setWorkspaceExpanded(true);
-                          }
-                        }}
-                        className={`flex items-center justify-center py-[8px] px-[12px] rounded-[6px] transition-all duration-200 ${
-                          activeSection === 'workspace'
-                            ? 'bg-theme-sidebar-item-selected text-white'
-                            : 'text-theme-text-secondary hover:bg-theme-sidebar-item-hover hover:text-white'
-                        }`}
-                      >
-                        <Folder 
-                          size={20} 
-                          weight={activeSection === 'workspace' ? 'fill' : 'regular'} 
-                          className={`transition-transform duration-300 ${workspaceExpanded ? 'rotate-90' : ''}`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Workspace Content - Only show when workspace section is active and expanded */}
-                    {activeSection === 'workspace' && workspaceExpanded && (
-                      <div className={`overflow-hidden transition-all duration-300 ${workspaceExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                        <div className="flex justify-center">
-                          {user && (
-                            <button
-                              onClick={showNewWsModal}
-                              className="light:bg-[#C2E7FE] light:hover:bg-[#7CD4FD] flex w-[48px] h-[32px] justify-center mb-2 bg-white rounded-[8px] text-sidebar justify-center items-center hover:bg-opacity-80 transition-all duration-300"
-                            >
-                              <Plus size={16} weight="bold" />
-                            </button>
-                          )}
-                        </div>
-                        <div className="overflow-hidden">
-                          <ActiveWorkspaces isMinimized={true} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Footer for minimized mode */}
-                <div className="absolute bottom-0 left-0 right-0 pt-4 pb-3 px-2 rounded-b-[16px] bg-theme-bg-sidebar bg-opacity-80 backdrop-filter backdrop-blur-md z-1">
-                  <div className="flex items-center justify-center flex-col gap-y-2">
-                    <UserDisplay />
-                    <SettingsButton />
-                    <button
-                      onClick={() => {
-                        window.localStorage.removeItem(AUTH_USER);
-                        window.localStorage.removeItem(AUTH_TOKEN);
-                        window.localStorage.removeItem(AUTH_TIMESTAMP);
-                        window.location.replace(paths.home());
-                      }}
-                      className="transition-all duration-300 p-2 rounded-full bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover"
-                      aria-label="Sign out"
-                    >
-                      <SignOut
-                        className="h-5 w-5"
-                        weight="fill"
-                        color="var(--theme-sidebar-footer-icon-fill)"
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
+        ) : (
+          <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center gap-y-2 pb-4">
+            <SettingsButton />
+            <button
+              onClick={() => {
+                window.localStorage.removeItem(AUTH_USER);
+                window.localStorage.removeItem(AUTH_TOKEN);
+                window.localStorage.removeItem(AUTH_TIMESTAMP);
+                window.location.replace(paths.home());
+              }}
+              className="transition-all duration-300 p-2 rounded-full bg-theme-sidebar-footer-icon hover:bg-theme-sidebar-footer-icon-hover"
+              aria-label="Sign out"
+            >
+              <SignOut
+                className="h-5 w-5"
+                weight="fill"
+                color="var(--theme-sidebar-footer-icon-fill)"
+              />
+            </button>
+            <div className="mt-2">
+              <UserDisplay />
             </div>
           </div>
         )}
-        {showingNewWsModal && <NewWorkspaceModal hideModal={hideNewWsModal} />}
       </div>
+      {showingNewWsModal && <NewWorkspaceModal hideModal={hideNewWsModal} />}
     </>
   );
 }
@@ -460,7 +319,7 @@ export function SidebarMobileHeader() {
                 <div className="flex items-center justify-between gap-x-2">
                   <div className="flex items-center gap-x-2">
                     <UserDisplay />
-                    <span className="text-white text-sm truncate max-w-[80px]">{user.username}</span>
+                    <span className="text-white text-sm truncate max-w-[80px]">{user?.username || "Guest"}</span>
                   </div>
                   <div className="flex items-center gap-x-2">
                     <SettingsButton />
