@@ -150,7 +150,7 @@ export default function App() {
                       element={
                         <ProtectedRoute>
                           <Routes>
-                            <Route path="/" element={<PrivateRoute Component={AutoWorkspaceRedirect} />} />
+                            <Route path="/" element={<PrivateRoute Component={Main} />} />
                             <Route
                               path="/sso/simple"
                               element={<SimpleSSOPassthrough />}

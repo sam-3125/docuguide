@@ -1,7 +1,10 @@
 import React, { useState } from "react";
-import { UploadSimple, FilePdf, PresentationChart, Brain, MagnifyingGlass, FileText, Microscope } from "@phosphor-icons/react";
+import { UploadSimple, FilePdf, PresentationChart, Brain, MagnifyingGlass, FileText, Microscope, BookOpen } from "@phosphor-icons/react"; // Added BookOpen icon
 import { useTranslation } from "react-i18next";
 import DeepResearchPanel from "./DeepResearchPanel";
+import ResearchPaperPanel from "./ResearchPaperPanel"; // Import the new component
+// --- At the top (IMPORT SECTION) ---
+import PatentPanel from "./PatentPanel"; // ✅ Add this line
 
 export default function MiddlePanel() {
   const [activeTab, setActiveTab] = useState('documents');
@@ -168,6 +171,9 @@ export default function MiddlePanel() {
             </div>
           </div>
         );
+
+      case 'research-paper': // New case for Research Papers
+        return <ResearchPaperPanel />;
       
       case 'visualization':
         return (
@@ -317,154 +323,8 @@ export default function MiddlePanel() {
           </div>
         );
       
-      case 'patent':
-        return (
-          <div className="flex flex-col items-center justify-center h-full p-8">
-            <div className="text-center max-w-2xl">
-              {/* Animated Icon */}
-              <div className="relative mb-8">
-                <div className="text-8xl mb-4 animate-pulse">⚖️</div>
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full opacity-20 blur-xl animate-pulse"></div>
-              </div>
-              
-              <h2 className="text-3xl font-bold mb-6 text-theme-text-primary bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                {t("patent.title", "Patent Tools")}
-              </h2>
-              
-              <p className="text-lg text-theme-text-secondary mb-10 max-w-lg mx-auto leading-relaxed">
-                {t("patent.description", "Comprehensive patent search and drafting tools to protect your intellectual property.")}
-              </p>
-              
-              {/* Sub-tabs for Patent */}
-              <div className="flex justify-center mb-8">
-                <div className="flex bg-theme-bg-secondary rounded-full p-1 shadow-lg border border-theme-border">
-                  <button
-                    onClick={() => setPatentSubTab('search')}
-                    className={`flex items-center gap-2 px-6 py-3 font-medium rounded-full transition-all duration-300 ${
-                      patentSubTab === 'search'
-                        ? 'text-white bg-gradient-to-r from-indigo-500 to-purple-600 shadow-md'
-                        : 'text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-primary'
-                    }`}
-                  >
-                    <MagnifyingGlass size={18} />
-                    Patent Search
-                  </button>
-                  
-                  <button
-                    onClick={() => setPatentSubTab('draft')}
-                    className={`flex items-center gap-2 px-6 py-3 font-medium rounded-full transition-all duration-300 ${
-                      patentSubTab === 'draft'
-                        ? 'text-white bg-gradient-to-r from-indigo-500 to-purple-600 shadow-md'
-                        : 'text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-primary'
-                    }`}
-                  >
-                    <FileText size={18} />
-                    Patent Draft
-                  </button>
-                </div>
-              </div>
-              
-              {/* Content based on sub-tab */}
-              {patentSubTab === 'search' ? (
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
-                  <div className="relative border-2 border-dashed border-theme-border rounded-2xl p-12 bg-gradient-to-br from-theme-bg-secondary to-theme-bg-primary hover:from-theme-bg-primary hover:to-theme-bg-secondary transition-all duration-300 cursor-pointer group-hover:shadow-2xl group-hover:scale-105 transform">
-                    <div className="flex flex-col items-center">
-                      <div className="relative mb-6">
-                        <MagnifyingGlass 
-                          size={64} 
-                          className="text-theme-text-secondary group-hover:text-indigo-500 transition-all duration-300 group-hover:scale-110 transform" 
-                        />
-                        <div className="absolute inset-0 bg-indigo-500 rounded-full opacity-0 group-hover:opacity-20 blur-md transition-opacity duration-300"></div>
-                      </div>
-                      
-                      <h3 className="text-xl font-semibold text-theme-text-primary mb-3 group-hover:text-indigo-600 transition-colors duration-300">
-                        {t("patent.search.title", "Patent Search")}
-                      </h3>
-                      
-                      <p className="text-base text-theme-text-secondary text-center mb-4 leading-relaxed">
-                        {t("patent.search.description", "Search global patent databases with advanced AI-powered analysis")}
-                      </p>
-                      
-                      <div className="flex items-center gap-4 text-sm text-theme-text-tertiary">
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
-                          Global DB
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
-                          AI Analysis
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-violet-500 rounded-full animate-pulse"></span>
-                          Reports
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
-                  <div className="relative border-2 border-dashed border-theme-border rounded-2xl p-12 bg-gradient-to-br from-theme-bg-secondary to-theme-bg-primary hover:from-theme-bg-primary hover:to-theme-bg-secondary transition-all duration-300 cursor-pointer group-hover:shadow-2xl group-hover:scale-105 transform">
-                    <div className="flex flex-col items-center">
-                      <div className="relative mb-6">
-                        <FileText 
-                          size={64} 
-                          className="text-theme-text-secondary group-hover:text-indigo-500 transition-all duration-300 group-hover:scale-110 transform" 
-                        />
-                        <div className="absolute inset-0 bg-indigo-500 rounded-full opacity-0 group-hover:opacity-20 blur-md transition-opacity duration-300"></div>
-                      </div>
-                      
-                      <h3 className="text-xl font-semibold text-theme-text-primary mb-3 group-hover:text-indigo-600 transition-colors duration-300">
-                        {t("patent.draft.title", "Patent Drafting")}
-                      </h3>
-                      
-                      <p className="text-base text-theme-text-secondary text-center mb-4 leading-relaxed">
-                        {t("patent.draft.description", "Create professional patent applications with AI assistance")}
-                      </p>
-                      
-                      <div className="flex items-center gap-4 text-sm text-theme-text-tertiary">
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
-                          Templates
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
-                          AI Writing
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-violet-500 rounded-full animate-pulse"></span>
-                          Review
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Feature Highlights */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-                <div className="text-center p-4 rounded-xl bg-theme-bg-secondary hover:bg-theme-bg-primary transition-all duration-300 group">
-                  <div className="text-2xl mb-2">🌍</div>
-                  <h4 className="font-semibold text-theme-text-primary mb-1">Global Search</h4>
-                  <p className="text-sm text-theme-text-secondary">Worldwide databases</p>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-theme-bg-secondary hover:bg-theme-bg-primary transition-all duration-300 group">
-                  <div className="text-2xl mb-2">🤖</div>
-                  <h4 className="font-semibold text-theme-text-primary mb-1">AI Powered</h4>
-                  <p className="text-sm text-theme-text-secondary">Smart analysis</p>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-theme-bg-secondary hover:bg-theme-bg-primary transition-all duration-300 group">
-                  <div className="text-2xl mb-2">📋</div>
-                  <h4 className="font-semibold text-theme-text-primary mb-1">Legal Compliance</h4>
-                  <p className="text-sm text-theme-text-secondary">Standards compliant</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      
+        case 'patent':
+          return <PatentPanel />;
       default:
         return null;
     case 'deep-research':
@@ -499,6 +359,19 @@ export default function MiddlePanel() {
           >
             <FilePdf size={16} />
             {t("pdf-view.tab", "PDF View")}
+          </button>
+
+          {/* New Research Papers Tab */}
+          <button
+            onClick={() => setActiveTab('research-paper')}
+            className={`flex items-center gap-2 px-4 py-3 font-medium rounded-full transition-all duration-300 ${
+              activeTab === 'research-paper'
+                ? 'text-white bg-gradient-to-r from-teal-500 to-cyan-600 shadow-md'
+                : 'text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-primary'
+            }`}
+          >
+            <BookOpen size={16} />
+            {t("research-paper.tab", "Research Papers")}
           </button>
           
           <button
@@ -545,4 +418,4 @@ export default function MiddlePanel() {
       </div>
     </div>
   );
-} 
+}

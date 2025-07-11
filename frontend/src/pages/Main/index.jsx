@@ -9,27 +9,32 @@ import { userFromStorage } from "@/utils/request";
 
 export default function Main() {
   const { loading, requiresAuth, mode } = usePasswordModal();
-
-  if (loading) return <FullScreenLoader />;
-  if (requiresAuth !== false)
-    return <>{requiresAuth !== null && <PasswordModal mode={mode} />}</>;
-
   const user = userFromStorage();
   const [showSidebar, setShowSidebar] = useState(true);
 
   return (
-    <div className="w-screen h-screen overflow-hidden bg-theme-bg-container flex">
+    <div className="w-screen h-screen bg-theme-bg-container flex">
+      {/* Loader overlay */}
+      {loading && <FullScreenLoader />}
+      {/* Password modal overlay */}
+      {!loading && requiresAuth !== false && requiresAuth !== null && <PasswordModal mode={mode} />}
       {/* Sidebar */}
       {!isMobile ? (
         <Sidebar showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
       ) : (
         <SidebarMobileHeader />
       )}
-      {/* Main content with dynamic left margin */}
+      {/* Main content area with proper responsive behavior */}
       <div
-        className={`transition-all duration-300 flex-1 h-full overflow-y-auto ${!isMobile ? (showSidebar ? 'ml-[260px]' : 'ml-[64px]') : ''}`}
+        className={`transition-all duration-300 flex-1 h-full main-content-area ${
+          !isMobile ? (showSidebar ? 'ml-[260px]' : 'ml-[64px]') : ''
+        }`}
       >
-        {!!user && user?.role !== "admin" ? <DefaultChatContainer /> : <Home />}
+        {!!user && user?.role !== "admin" ? (
+          <DefaultChatContainer />
+        ) : (
+          <Home />
+        )}
       </div>
     </div>
   );

@@ -164,7 +164,7 @@ function ShowWorkspaceChat() {
             width: activeSection === 'home' ? '100%' : (layoutMode === LAYOUT_MODES.FULLSCREEN ? '0px' : 'auto'),
             minWidth: activeSection === 'home' ? '100%' : (layoutMode === LAYOUT_MODES.FULLSCREEN ? '0px' : '200px')
           }}
-          className={`${activeSection === 'home' ? 'flex-1' : (layoutMode === LAYOUT_MODES.FULLSCREEN ? 'hidden' : 'flex-1')} h-full`}
+          className={`${activeSection === 'home' ? 'flex-1' : (layoutMode === LAYOUT_MODES.FULLSCREEN ? 'hidden' : 'flex-1')} h-full overflow-hidden`}
         >
           {activeSection === 'home' && <HomePanel key={`home-${Date.now()}`} />}
           {activeSection === 'chat' && <MiddlePanel />}
